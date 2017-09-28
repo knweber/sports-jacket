@@ -6,3 +6,9 @@ end
 
 class UpdateLineItems < ActiveRecord::Base
 end
+
+class Charges < ActiveRecord::Base
+end
+
+class ChargeBillingAddress < ActiveRecord::Base
+end

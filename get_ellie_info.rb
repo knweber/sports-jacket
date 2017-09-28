@@ -125,7 +125,7 @@ module DetermineInfo
                 properties_result.each do |myrow|
                     myname = myrow['name']
                     myvalue = myrow['value']
-                    temp_jacket_size = ""
+                    
                     puts "#{myname}, #{myvalue}"
                     local_json_string = {"name" => myname, "value" => myvalue}
                     temp_property_array << local_json_string
@@ -134,13 +134,15 @@ module DetermineInfo
                     end
                     if myname == "tops"
                         temp_jacket_size = myvalue
+                        puts "found temp_jacket_size! #{temp_jacket_size}"
                     end
 
                     
                     
 
                 end
-                if !sports_jacket_present && temp_jacket_size != ""
+                puts "sportsjacket = #{sports_jacket_present}, size = #{temp_jacket_size}"
+                if !sports_jacket_present && temp_jacket_size != "" 
                     temp_jacket_properties = {"name" => "sports-jacket", "value" => temp_jacket_size}
                     temp_property_array << temp_jacket_properties
                     puts "------------"
@@ -268,6 +270,43 @@ module DetermineInfo
             puts subs.inspect
 
 
+
+        end
+
+        def count_charges
+            #GET /charges/count
+            charge_count = HTTParty.get("https://api.rechargeapps.com/charges/count", :headers => @my_header)
+            my_count = charge_count.parsed_response
+            num_charges = my_count['count'].to_i
+            puts "Number of charges is #{num_charges}"
+            return num_charges
+        end
+
+        def insert_charges_into_db
+            charge_number = count_charges
+            puts charge_number
+            start = Time.now
+            page_size = 250
+            num_pages = (charge_number/page_size.to_f).ceil
+            1.upto(num_pages) do |page|
+                charges = HTTParty.get("https://api.rechargeapps.com/charges?limit=250&page=#{page}", :headers => @my_header)
+                my_charges = charges.parsed_response['charges']
+                my_charges.each do |charge|
+                    puts "-------------"
+                    puts charge.inspect
+                    puts "-------------"
+                end
+                
+                my_end = Time.now
+                duration = (my_end - start).ceil
+                puts "running #{duration} seconds"
+                puts "done with page #{page}"
+                puts "Sleeping #{@sleep_recharge}"
+                sleep @sleep_recharge.to_i
+
+            end
+            puts "All done with charges"
+            puts "Ran #{(Time.now - start).ceil} seconds"
 
         end
 

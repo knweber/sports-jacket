@@ -47,9 +47,13 @@ task :testing_line_items do
 end
 
 
-#retrieve_sub
-
 desc "retrieve a test subscription via sub id"
 task :retrieve_subscription do
     DetermineInfo::InfoGetter.new.retrieve_sub
+end
+
+#count_charges
+desc "count all charges in ReCharge"
+task :insert_charges do
+    DetermineInfo::InfoGetter.new.insert_charges_into_db
 end
