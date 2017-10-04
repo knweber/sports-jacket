@@ -18,7 +18,7 @@ end
 
 desc "delete all tables for cleanup"
 task :delete_all_tables do
-    DetermineInfo::InfoGetter.new.delete_tables
+    DetermineInfo::InfoGetter.new.delete_tables2
 end
 
 
@@ -53,7 +53,12 @@ task :retrieve_subscription do
 end
 
 #count_charges
-desc "count all charges in ReCharge"
+desc "insert all charges in ReCharge"
 task :insert_charges do
     DetermineInfo::InfoGetter.new.insert_charges_into_db
+end
+
+desc "insert all orders in Recharge to DB"
+task :insert_orders do
+    DetermineInfo::InfoGetter.new.insert_orders_into_db
 end

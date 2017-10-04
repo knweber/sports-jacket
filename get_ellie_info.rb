@@ -283,6 +283,31 @@ module DetermineInfo
         end
 
         def insert_charges_into_db
+            uri = URI.parse(ENV['DATABASE_URL'])
+            conn = PG.connect(uri.hostname, uri.port, nil, nil, uri.path[1..-1], uri.user, uri.password)
+
+            my_insert = "insert into charges (address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at, discount_codes) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)"
+            conn.prepare('statement1', "#{my_insert}")
+
+            my_insert_billing = "insert into charge_billing_address (address1, address2, city, company, country, first_name, last_name, phone, province, zip, charge_id) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+            conn.prepare('statement2', "#{my_insert_billing}")
+
+            my_insert_client_details = "insert into charge_client_details (charge_id, browser_ip, user_agent) values ($1, $2, $3)"
+            conn.prepare('statement3', "#{my_insert_client_details}")
+
+            my_insert_fixed_line_items = "insert into charge_fixed_line_items (charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+            conn.prepare('statement4', "#{my_insert_fixed_line_items}")
+
+            my_insert_variable_line_items = "insert into charge_variable_line_items (charge_id, name, value) values ($1, $2, $3)"
+            conn.prepare('statement5', "#{my_insert_variable_line_items}")
+
+            my_insert_charges_shipping_address = "insert into charges_shipping_address (charge_id, address1, address2, city, company, country, first_name, last_name, phone, province, zip) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+            conn.prepare('statement6', "#{my_insert_charges_shipping_address}")
+
+            my_insert_charges_shipping_lines = "insert into charges_shipping_lines (charge_id, code, price, source, title, tax_lines, carrier_identifier, request_fulfillment_service_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+            conn.prepare('statement7', "#{my_insert_charges_shipping_lines}")
+
+
             charge_number = count_charges
             puts charge_number
             start = Time.now
@@ -295,6 +320,133 @@ module DetermineInfo
                     puts "-------------"
                     puts charge.inspect
                     puts "-------------"
+                    # insert into database tables
+                    address_id = charge['address_id']
+                    raw_billing_address = charge['billing_address']
+                    billing_address = charge['billing_address'].to_json
+                    billing_address1 = raw_billing_address['address1']
+                    billing_address2 = raw_billing_address['address2']
+                    billing_address_city = raw_billing_address['city']
+                    billing_address_company = raw_billing_address['company']
+                    billing_address_country = raw_billing_address['country']
+                    billing_address_first_name = raw_billing_address['first_name']
+                    billing_address_last_name = raw_billing_address['last_name']
+                    billing_address_phone = raw_billing_address['phone']
+                    billing_address_province = raw_billing_address['province']
+                    billing_address_zip = raw_billing_address['zip']
+
+                       
+
+                    client_details = charge['client_details'].to_json
+                    raw_client_details = charge['client_details']
+                    browser_ip = raw_client_details['browser_ip']
+                    user_agent = raw_client_details['user_agent']
+                   
+
+
+                    created_at = charge['created_at']
+                    customer_hash = charge['customer_hash']
+                    customer_id = charge['customer_id']
+                    discount_codes = charge['discount_codes'].to_json
+                    first_name = charge['first_name']
+                    charge_id = charge['id']
+                    #insert charge_billing_address sub-table
+                    conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id ])
+
+                    conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
+
+
+                    last_name = charge['last_name']
+                    line_items = charge['line_items'].to_json
+                    raw_line_items = charge['line_items'][0]
+                    raw_line_items['properties'].each do |myitem|
+                        puts myitem
+                        myname = myitem['name']
+                        myvalue = myitem['value']
+                        if myvalue == "" 
+                            myvalue = nil
+                        end
+                        puts "#{charge_id}: #{myname} -> #{myvalue}"
+                        conn.exec_prepared('statement5', [charge_id, myname, myvalue])
+                    end
+                    
+                    grams = raw_line_items['grams']
+                    price = raw_line_items['price']
+                    if grams.nil?
+                        grams = 0
+                    else
+                        grams = grams.to_i
+                    end
+                    if price.nil?
+                        price = 0.0
+                    else
+                        price = price.to_f
+                        price = price.round(2)
+                    end
+
+                    quantity = raw_line_items['quantity']
+                    shopify_product_id = raw_line_items['shopify_product_id']
+                    shopify_variant_id = raw_line_items['shopify_variant_id']
+                    sku = raw_line_items['sku']
+                    subscription_id = raw_line_items['subscription_id']
+                    title = raw_line_items['title']
+                    variant_title = raw_line_items['variant_title']
+                    vendor = raw_line_items['vendor']
+
+                    conn.exec_prepared('statement4', [charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor])
+
+
+                    note = charge['note']
+                    note_attributes = charge['note_attributes'].to_json
+                    processed_at = charge['processed_at']
+                    scheduled_at = charge['scheduled_at']
+                    shipments_count = charge['shipments_count']
+                    shipping_address = charge['shipping_address'].to_json
+                    raw_shipping_address = charge['shipping_address']
+                    sa_address1 = raw_shipping_address['address1']
+                    sa_address2 = raw_shipping_address['address2']
+                    sa_city = raw_shipping_address['city']
+                    sa_company = raw_shipping_address['company']
+                    sa_country = raw_shipping_address['country']
+                    sa_first_name = raw_shipping_address['first_name']
+                    sa_last_name = raw_shipping_address['last_name']
+                    sa_phone = raw_shipping_address['phone']
+                    sa_province = raw_shipping_address['province']
+                    sa_zip = raw_shipping_address['zip']
+                    conn.exec_prepared('statement6', [charge_id, sa_address1, sa_address2, sa_city, sa_company, sa_country, sa_first_name, sa_last_name, sa_phone, sa_province, sa_zip])
+
+                    shipping_lines = charge['shipping_lines'][0]
+                    if !shipping_lines.nil?
+                        sl_code = shipping_lines['code']
+                        sl_price = shipping_lines['price'].to_f
+                        sl_price = sl_price.round(2)
+                        sl_source = shipping_lines['source']
+                        sl_title = shipping_lines['title']
+                        sl_tax_lines = shipping_lines['tax_lines'].to_json
+                        sl_carrier_identifier = shipping_lines['carrier_identifier']
+                        sl_request_fulfillment_service_id = shipping_lines['request_fulfillment_service_id']
+                        conn.exec_prepared('statement7', [charge_id, sl_code, sl_price, sl_source, sl_title, sl_tax_lines, sl_carrier_identifier, sl_request_fulfillment_service_id])
+                    end
+
+
+                    shopify_order_id = charge['shopify_order_id']
+                    status = charge['status']
+                    sub_total = charge['sub_total']
+                    sub_total_price = charge['sub_total_price']
+                    tags = charge['tags']
+                    tax_lines = charge['tax_lines']
+                    total_discounts = charge['total_discounts']
+                    total_line_items_price = charge['total_line_items_price']
+                    total_tax = charge['total_tax']
+                    total_weight = charge['total_weight']
+                    total_price = charge['total_price']
+                    updated_at = charge['updated_at']
+
+                    conn.exec_prepared('statement1', [ address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at,  discount_codes ])
+
+
+
+
                 end
                 
                 my_end = Time.now
@@ -307,6 +459,241 @@ module DetermineInfo
             end
             puts "All done with charges"
             puts "Ran #{(Time.now - start).ceil} seconds"
+            conn.close
+
+        end
+
+
+        def delete_tables2
+            uri = URI.parse(ENV['DATABASE_URL'])
+            conn = PG.connect(uri.hostname, uri.port, nil, nil, uri.path[1..-1], uri.user, uri.password)
+          
+            my_subscription_delete = "delete from subscriptions"
+            my_sub_line_items_delete = "delete from sub_line_items"
+            my_update_line_items = "delete from update_line_items"
+            #conn.exec(my_subscription_delete)
+            #conn.exec(my_sub_line_items_delete)
+            #conn.exec(my_update_line_items)
+
+            my_charge_delete = "delete from charges"
+            my_reset_sequence = "ALTER SEQUENCE charges_id_seq RESTART WITH 1"
+            conn.exec(my_charge_delete)
+            conn.exec(my_reset_sequence)
+            my_charge_billing_address_delete = "delete from charge_billing_address"
+            my_charge_billing_address_reset = "ALTER SEQUENCE charge_billing_address_id_seq RESTART WITH 1"
+            conn.exec(my_charge_billing_address_delete)
+            conn.exec(my_charge_billing_address_reset)
+            my_charge_client_details_delete = "delete from charge_client_details"
+            my_charge_client_details_reset = "ALTER SEQUENCE charge_client_details_id_seq RESTART WITH 1"
+            conn.exec(my_charge_client_details_delete)
+            conn.exec(my_charge_client_details_reset)
+            my_charge_fixed_line_items_delete = "delete from charge_fixed_line_items"
+            my_charge_fixed_line_items_reset = "ALTER SEQUENCE charge_fixed_line_items_id_seq RESTART WITH 1"
+            conn.exec(my_charge_fixed_line_items_delete)
+            conn.exec(my_charge_fixed_line_items_reset)
+            my_charge_variable_line_items_delete = "delete from charge_variable_line_items"
+            my_charge_variable_line_items_reset = "ALTER SEQUENCE charge_fixed_line_items_id_seq RESTART WITH 1"
+            conn.exec(my_charge_variable_line_items_delete)
+            conn.exec(my_charge_variable_line_items_reset)
+            my_charges_shipping_address_delete = "delete from charges_shipping_address"
+            my_charges_shipping_address_reset = "ALTER SEQUENCE charges_shipping_address_id_seq RESTART WITH 1"
+            conn.exec(my_charges_shipping_address_delete)
+            conn.exec(my_charges_shipping_address_reset)
+            my_charges_shipping_lines_delete = "delete from charges_shipping_lines"
+            my_charges_shipping_lines_reset = "ALTER SEQUENCE charges_shipping_lines_id_seq RESTART WITH 1"
+            conn.exec(my_charges_shipping_lines_delete)
+            conn.exec(my_charges_shipping_lines_reset)
+            my_orders_delete = "delete from orders"
+            my_orders_reset = "ALTER SEQUENCE orders_id_seq RESTART WITH 1"
+            conn.exec(my_orders_delete)
+            conn.exec(my_orders_reset)
+            my_orders_line_item_fixed_delete = "delete from order_line_items_fixed"
+            my_orders_line_item_fixed_reset = "ALTER SEQUENCE order_line_items_fixed_id_seq RESTART WITH 1"
+            conn.exec(my_orders_line_item_fixed_delete)
+            conn.exec(my_orders_line_item_fixed_reset)
+            my_orders_line_item_variable_delete = "delete from order_line_items_variable"
+            my_orders_line_item_variable_reset = "ALTER SEQUENCE order_line_items_variable_id_seq RESTART WITH 1"
+            conn.exec(my_orders_line_item_variable_delete)
+            conn.exec(my_orders_line_item_variable_reset)
+            my_orders_shipping_delete = "delete from order_shipping_address"
+            my_orders_shipping_reset = "ALTER SEQUENCE order_shipping_address_id_seq RESTART WITH 1"
+            conn.exec(my_orders_shipping_delete)
+            conn.exec(my_orders_shipping_reset)
+            my_orders_billing_delete = "delete from order_billing_address"
+            my_orders_billing_reset = "ALTER SEQUENCE order_billing_address_id_seq RESTART WITH 1"
+            conn.exec(my_orders_billing_delete)
+            conn.exec(my_orders_billing_reset)
+           
+           
+          
+           
+
+
+
+            puts "all done deleting subscriptions, sub_line_items, and update_line_items tables"
+
+        end
+
+        def get_three_months_ago
+            my_today = Date.today
+            #puts my_today
+            first_month = my_today.beginning_of_month
+            #puts first_month
+            first_month_three_months_ago = first_month << 3
+            #puts first_month_three_months_ago
+            created_at_min = first_month_three_months_ago.strftime("%Y-%m-%d")
+            return created_at_min
+
+        end
+
+        def count_orders
+            created_at_min = get_three_months_ago
+            #puts created_at_min
+            #GET /orders/count?created_at_min='2015-01-01'&created_at_max='2017-02-02'
+            order_count = HTTParty.get("https://api.rechargeapps.com/orders/count?created_at_min=\'#{created_at_min}\'", :headers => @my_header)
+            my_count = order_count.parsed_response
+            my_count = JSON.parse(my_count)
+            num_orders = my_count['count'].to_i
+            #puts num_orders
+            return num_orders
+         
+
+        end
+
+        def insert_orders_into_db
+
+            uri = URI.parse(ENV['DATABASE_URL'])
+            conn = PG.connect(uri.hostname, uri.port, nil, nil, uri.path[1..-1], uri.user, uri.password)
+
+            my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
+            conn.prepare('statement1', "#{my_insert}")  
+
+            my_order_line_fixed_insert = "insert into order_line_items_fixed (order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+            conn.prepare('statement2', "#{my_order_line_fixed_insert}") 
+
+            my_order_line_variable_insert = "insert into order_line_items_variable (order_id, name, value) values ($1, $2, $3)"
+            conn.prepare('statement3', "#{my_order_line_variable_insert}") 
+            
+            my_order_shipping_insert = "insert into order_shipping_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+            conn.prepare('statement4', "#{my_order_shipping_insert}") 
+
+            my_order_billing_insert = "insert into order_billing_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+            conn.prepare('statement5', "#{my_order_billing_insert}") 
+           
+
+            number_orders = count_orders
+            puts number_orders
+            created_at_min = get_three_months_ago
+            start = Time.now
+            page_size = 250
+            num_pages = (number_orders/page_size.to_f).ceil
+            1.upto(num_pages) do |page|
+                orders = HTTParty.get("https://api.rechargeapps.com/orders?created_at_min=\'#{created_at_min}\'&limit=250&page=#{page}", :headers => @my_header)
+                my_orders = orders.parsed_response['orders']
+                my_orders.each do |order|
+                    puts "-------------"
+                    puts order.inspect
+                    puts "-------------"
+                    order.each do |myord|
+                        puts myord.inspect
+                    end
+                    order_id = order['id'] 
+                    transaction_id = order['id']
+                    charge_status = order['charge_status']
+                    payment_processor = order['payment_processor']
+                    address_is_active = order['address_is_active'].to_i
+                    status = order['status']
+                    type = order['type']
+                    charge_id = order['charge_id']
+                    address_id = order['address_id']
+                    shopify_id = order['shopify_id']
+                    shopify_order_id = order['shopify_order_id']
+                    shopify_order_number = order['shopify_order_number']
+                    shopify_cart_token = order['shopify_cart_token']
+                    shipping_date = order['shipping_date']
+                    scheduled_at = order['scheduled_at']
+                    shipped_date = order['shipped_date']
+                    processed_at = order['processed_at']
+                    customer_id = order['customer_id']
+                    first_name = order['first_name']
+                    last_name = order['last_name']
+                    is_prepaid = order['is_prepaid'].to_i
+                    created_at = order['created_at']
+                    updated_at = order['updated_at']
+                    email = order['email']
+                    line_items = order['line_items'].to_json
+                    raw_line_items = order['line_items'][0]
+
+                    shopify_variant_id = raw_line_items['shopify_variant_id']
+                    title = raw_line_items['title']
+                    variant_title = raw_line_items['variant_title']
+                    subscription_id = raw_line_items['subscription_id']
+                    quantity = raw_line_items['quantity'].to_i
+                    shopify_product_id = raw_line_items['shopify_product_id']
+                    product_title = raw_line_items['product_title']
+                    conn.exec_prepared('statement2', [ order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title ])
+
+                    
+                    variable_line_items = raw_line_items['properties']
+                    variable_line_items.each do |myprop|
+                        #puts "&&&&&&&&&&&&&&&&&&&"
+                        #puts myprop.inspect
+                        myname = myprop['name']
+                        myvalue = myprop['value']
+                        conn.exec_prepared('statement3', [ order_id, myname, myvalue ])
+                        #puts "^^^^^^^^^^^^^^^^^^^"
+                    end
+
+
+
+                    total_price = order['total_price']
+                    shipping_address = order['shipping_address'].to_json
+                    billing_address = order['billing_address'].to_json
+
+                    #insert shipping_address sub table
+                    raw_shipping_address = order['shipping_address']
+                    ord_ship_province = raw_shipping_address['province']
+                    ord_ship_city = raw_shipping_address['city']
+                    ord_ship_first_name = raw_shipping_address['first_name']
+                    ord_ship_last_name = raw_shipping_address['last_name']
+                    ord_ship_zip = raw_shipping_address['zip']
+                    ord_ship_country = raw_shipping_address['country']
+                    ord_ship_address1 = raw_shipping_address['address1']
+                    ord_ship_address2 = raw_shipping_address['address2']
+                    ord_ship_company = raw_shipping_address['company']
+                    ord_ship_phone = raw_shipping_address['phone']
+                    conn.exec_prepared('statement4', [ order_id, ord_ship_province, ord_ship_city, ord_ship_first_name, ord_ship_last_name, ord_ship_zip, ord_ship_country, ord_ship_address1, ord_ship_address2, ord_ship_company, ord_ship_phone ])
+
+                    #insert billing_address sub table
+                    raw_billing_address = order['billing_address']
+                    ord_bill_province = raw_billing_address['province']
+                    ord_bill_city = raw_billing_address['city']
+                    ord_bill_first_name = raw_billing_address['first_name']
+                    ord_bill_last_name = raw_billing_address['last_name']
+                    ord_bill_zip = raw_billing_address['zip']
+                    ord_bill_country = raw_billing_address['country']
+                    ord_bill_address1 = raw_billing_address['address1']
+                    ord_bill_address2 = raw_billing_address['address2']
+                    ord_bill_company = raw_billing_address['company']
+                    ord_bill_phone = raw_billing_address['phone']
+                    conn.exec_prepared('statement5', [ order_id, ord_bill_province, ord_bill_city, ord_bill_first_name, ord_bill_last_name, ord_bill_zip, ord_bill_country, ord_bill_address1, ord_bill_address2, ord_bill_company, ord_bill_phone ])
+
+                    #insert into orders
+                    conn.exec_prepared('statement1', [order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address])
+
+
+                end
+                puts "*****************************"
+                puts "Done with page #{page}"  
+                current = Time.now
+                duration = (current - start).ceil
+                puts "Been running #{duration} seconds" 
+                puts "Sleeping #{@sleep_recharge}"
+                sleep @sleep_recharge.to_i             
+
+            end
+            conn.close
+
 
         end
 

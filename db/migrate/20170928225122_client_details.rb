@@ -11,7 +11,8 @@ class ClientDetails < ActiveRecord::Migration[5.1]
   end
 
   def down
-    drop_table :charge_client_details
     remove_index :charge_client_details, :charge_id
+    drop_table :charge_client_details
+    
   end
 end
