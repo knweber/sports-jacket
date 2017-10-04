@@ -523,7 +523,10 @@ module DetermineInfo
             my_orders_billing_reset = "ALTER SEQUENCE order_billing_address_id_seq RESTART WITH 1"
             conn.exec(my_orders_billing_delete)
             conn.exec(my_orders_billing_reset)
-           
+            customers_delete = "delete from customers"
+            customers_reset = "ALTER SEQUENCE customers_id_seq RESTART WITH 1"
+            conn.exec(customers_delete)
+            conn.exec(customers_reset)
            
           
            
@@ -694,6 +697,92 @@ module DetermineInfo
             end
             conn.close
 
+
+        end
+
+        def count_customers
+            #GET /customers/count
+            customer_count = HTTParty.get("https://api.rechargeapps.com/customers/count", :headers => @my_header)
+            my_count = customer_count.parsed_response
+            num_customers = my_count['count'].to_i
+            return num_customers
+        end
+
+
+
+        def insert_customers_into_db
+            num_customers = count_customers
+            puts "We have #{num_customers} customers"
+
+            uri = URI.parse(ENV['DATABASE_URL'])
+            conn = PG.connect(uri.hostname, uri.port, nil, nil, uri.path[1..-1], uri.user, uri.password)
+
+            my_insert = "insert into customers (customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
+            conn.prepare('statement1', "#{my_insert}") 
+
+            start = Time.now
+            page_size = 250
+            num_pages = (num_customers/page_size.to_f).ceil
+            1.upto(num_pages) do |page|
+                customers = HTTParty.get("https://api.rechargeapps.com/customers?limit=250&page=#{page}", :headers => @my_header)
+                my_customers = customers.parsed_response['customers']
+                puts "----------------------------------"
+                #puts my_customers.inspect
+                my_customers.each do |mycust|
+                    puts "******************"
+                    puts mycust.inspect
+                    puts "******************"
+                    customer_id = mycust['id']
+                    hash = mycust['hash']
+                    shopify_customer_id = mycust['shopify_customer_id']
+                    email = mycust['email']
+                    created_at = mycust['created_at']
+                    updated_at = mycust['updated_at']
+                    first_name = mycust['first_name']
+                    last_name = mycust['last_name']
+                    billing_address1 = mycust['billing_address1']
+                    billing_address2 = mycust['billing_address2']
+                    billing_zip = mycust['billing_zip']
+                    billing_city = mycust['billing_city']
+                    billing_company = mycust['billing_company']
+                    billing_province = mycust['billing_province']
+                    billing_country = mycust['billing_country']
+                    billing_phone = mycust['billing_phone']
+                    processor_type = mycust['processor_type']
+                    status = mycust['status']
+                    conn.exec_prepared('statement1', [customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
+
+
+
+                end
+                puts "----------------------------------"
+                puts "Done with page #{page}"
+                current = Time.now
+                duration = (current - start).ceil
+                puts "Running #{duration} seconds"
+                puts "Sleeping #{@sleep_recharge}"
+                sleep @sleep_recharge.to_i 
+
+
+
+            end
+            puts "All done"
+            
+
+
+        end
+
+
+        def count_addresses
+            address_count = HTTParty.get("https://api.rechargeapps.com/addresses/count", :headers => @my_header)
+            my_count = address_count.parsed_response
+            puts my_count
+          
+
+        end
+
+        def insert_addresses_into_db
+            count_addresses
 
         end
 

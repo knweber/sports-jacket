@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171003232918) do
+ActiveRecord::Schema.define(version: 20171004183754) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -119,6 +119,29 @@ ActiveRecord::Schema.define(version: 20171003232918) do
     t.string "carrier_identifier"
     t.string "request_fulfillment_service_id"
     t.index ["charge_id"], name: "index_charges_shipping_lines_on_charge_id"
+  end
+
+  create_table "customers", force: :cascade do |t|
+    t.string "customer_id"
+    t.string "hash"
+    t.string "shopify_customer_id"
+    t.string "email"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.string "first_name"
+    t.string "last_name"
+    t.string "billing_address1"
+    t.string "billing_address2"
+    t.string "billing_zip"
+    t.string "billing_city"
+    t.string "billing_company"
+    t.string "billing_province"
+    t.string "billing_country"
+    t.string "billing_phone"
+    t.string "processor_type"
+    t.string "status"
+    t.index ["customer_id"], name: "index_customers_on_customer_id"
+    t.index ["shopify_customer_id"], name: "index_customers_on_shopify_customer_id"
   end
 
   create_table "order_billing_address", force: :cascade do |t|

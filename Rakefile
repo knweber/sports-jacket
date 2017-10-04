@@ -62,3 +62,16 @@ desc "insert all orders in Recharge to DB"
 task :insert_orders do
     DetermineInfo::InfoGetter.new.insert_orders_into_db
 end
+
+
+
+desc "insert all customers in Recharge to DB"
+task :insert_customers do
+    DetermineInfo::InfoGetter.new.insert_customers_into_db
+end
+
+
+desc "insert all addresses in Recharge to DB"
+task :insert_addresses do
+    DetermineInfo::InfoGetter.new.insert_addresses_into_db
+end
