@@ -1,5 +1,6 @@
 require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
+require 'resque/tasks'
 
 
 
@@ -23,9 +24,9 @@ end
 
 
 
-desc "testing justin subscription update"
-task :testing_justin do
-    DetermineInfo::InfoGetter.new.testing_update_justin
+desc "testing customer_yesterday"
+task :testing_customer_yesterday_pull do
+    DetermineInfo::InfoGetter.new.testing_customer_yesterday_pull
 end
 
 
@@ -74,4 +75,14 @@ end
 desc "insert all addresses in Recharge to DB"
 task :insert_addresses do
     DetermineInfo::InfoGetter.new.insert_addresses_into_db
+end
+
+desc "do full or partial pull of customers and add to DB"
+task :customer_pull, [:args] do |t, args|
+    DetermineInfo::InfoGetter.new.handle_customers(*args)
+end
+
+desc "do full or partial pull of charge table and associated tables and add to DB"
+task :charge_pull, [:args] do |t, args|
+    DetermineInfo::InfoGetter.new.handle_charges(*args)
 end

@@ -6,6 +6,8 @@ require 'dotenv'
 require 'pg'
 require 'sinatra/activerecord'
 require 'active_support/core_ext'
+require 'resque'
+require_relative 'worker_helper'
 
 
 
@@ -24,6 +26,8 @@ module DetermineInfo
                 "Accept" => "application/json",
                 "Content-Type" =>"application/json"
             }
+            @uri = URI.parse(ENV['DATABASE_URL'])
+            @conn = PG.connect(@uri.hostname, @uri.port, nil, nil, @uri.path[1..-1], @uri.user, @uri.password)
         end
 
         def count_subscriptions
@@ -170,21 +174,15 @@ module DetermineInfo
             puts "all done deleting subscriptions, sub_line_items, and update_line_items tables"
         end
 
-        def testing_update_justin
-            #GET /subscriptions?shopify_customer_id=12345
+        def testing_customer_yesterday_pull
+            
+            #GET /orders?created_at_min=2016-05-18&created_at_max=2016-06-18
 
-            #justin shopify_id = 5021489349
-            my_shopify_id = "5021489349"
-            response = HTTParty.get("https://api.rechargeapps.com/subscriptions?shopify_id=#{my_shopify_id}", :headers => @my_header)
-            #puts response.parsed_response.inspect
-            subs = response.parsed_response
-            subs['subscriptions'].each do |local_sub|
-                puts "-----------------"
-                puts local_sub.inspect
-                puts "-----------------"
 
-            end
-
+            customer_count = HTTParty.get("https://api.rechargeapps.com/customers/count?updated_at_min=2017-10-06", :headers => @my_header)
+            my_count = customer_count.parsed_response
+            puts my_count.inspect
+            
 
         end
 
@@ -773,17 +771,67 @@ module DetermineInfo
         end
 
 
-        def count_addresses
-            address_count = HTTParty.get("https://api.rechargeapps.com/addresses/count", :headers => @my_header)
-            my_count = address_count.parsed_response
-            puts my_count
-          
+        
+
+        def handle_customers(option)
+            params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
+            if option == "full_pull"
+                puts "Doing full pull of customers"
+                #delete tables and do full pull
+                puts @uri.inspect
+                
+                Resque.enqueue(PullCustomer, params)
+
+            elsif option == "yesterday"
+                puts "Doing partial pull of customers since yesterday"
+                #params = {"option_value" => option, "connection" => @uri}
+                Resque.enqueue(PullCustomer, params)
+            else
+                puts "sorry, cannot understand option #{option}, doing nothing."
+            end
 
         end
 
-        def insert_addresses_into_db
-            count_addresses
 
+        class PullCustomer
+            extend EllieHelper
+            @queue = "pull_customer"
+            def self.perform(params)
+                puts params.inspect
+                get_customers_full(params)
+
+            end
+
+        end
+
+        def handle_charges(option)
+            params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
+            if option == "full_pull"
+                puts "Doing full pull of charge table and associated charge tables"
+                #delete tables and do full pull
+                #puts @uri.inspect
+                
+                Resque.enqueue(PullCharge, params)
+
+            elsif option == "yesterday"
+                puts "Doing partial pull of charge table and associated tables since yesterday"
+                #params = {"option_value" => option, "connection" => @uri}
+                Resque.enqueue(PullCharge, params)
+            else
+                puts "sorry, cannot understand option #{option}, doing nothing."
+            end
+
+        end
+
+
+        class PullCharge
+            extend EllieHelper
+            @queue = "pull_charge"
+            def self.perform(params)
+                puts params.inspect
+                get_charge_full(params)
+
+            end
         end
 
 
