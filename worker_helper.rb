@@ -256,7 +256,7 @@ module EllieHelper
             num_charges = background_count_full_charges(header_info)
             puts "We have #{num_charges} to download"
             #background_load_full_customers(sleep_recharge, num_customers, header_info, uri)
-              background_load_full_charges(sleep_recharge, num_charges, header_info, uri)
+            background_load_full_charges(sleep_recharge, num_charges, header_info, uri)
 
 
         elsif option_value == "yesterday"
@@ -377,8 +377,27 @@ module EllieHelper
                 #insert charge_billing_address sub-table
                 #my_conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id ])
 
-                #my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
+                #create charge_billing_address hash, and send it to method to determine
+                #if insert or update
 
+                charge_billing_address_hash = {"billing_address1" => billing_address1, "billing_address2" => billing_address2, "billing_address_city" => billing_address_city, "billing_address_company" => billing_address_company, "billing_address_country" => billing_address_country, "billing_address_first_name" => billing_address_first_name, "billing_address_last_name" => billing_address_last_name, "billing_address_phone" => billing_address_phone, "billing_address_province" => billing_address_province, "billing_address_zip" => billing_address_zip, "charge_id" => charge_id}
+
+                insert_update_charge_billing_address(uri, charge_billing_address_hash)
+
+
+                #my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
+                #create charge_client_details_hash and send to method for insert/update
+
+                charge_client_details_hash = {"charge_id" => charge_id, "browser_ip" => browser_ip, "user_agent" => user_agent}
+
+                if !browser_ip.nil?
+                    insert_update_charge_client_details(uri, charge_client_details_hash)
+                end
+
+                #before updating/inserting variable line items delete everything in that table
+                #with the id, and just insert only, its special case, can have many or one or
+                #none variable line items -- name/value pair.
+                special_delete_variable_line_items(uri, charge_id)
 
                 last_name = charge['last_name']
                 line_items = charge['line_items'].to_json
@@ -390,8 +409,15 @@ module EllieHelper
                     if myvalue == "" 
                         myvalue = nil
                     end
-                    #puts "#{charge_id}: #{myname} -> #{myvalue}"
-                    #my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
+                    puts "#{charge_id}: #{myname} -> #{myvalue}"
+                    
+                    #create hash for charge_variable_line_items, send to method to determine
+                    #if should update or insert
+
+                    charge_variable_line_items = {"charge_id" => charge_id, "name" => myname, "value" => myvalue}
+                    insert_update_charge_variable_line_items(uri, charge_variable_line_items)
+
+
                 end
                 
                 grams = raw_line_items['grams']
@@ -417,7 +443,10 @@ module EllieHelper
                 variant_title = raw_line_items['variant_title']
                 vendor = raw_line_items['vendor']
 
-                #my_conn.exec_prepared('statement4', [charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor])
+                
+                charge_fixed_line_items_hash = {"charge_id" => charge_id, "grams" => grams, "price" => price, "quantity" => quantity, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "subscription_id" => subscription_id, "title" => title, "variant_title" => variant_title, "vendor" => vendor}
+
+                insert_update_charge_fixed_line_items(uri, charge_fixed_line_items_hash)
 
 
                 note = charge['note']
@@ -437,7 +466,12 @@ module EllieHelper
                 sa_phone = raw_shipping_address['phone']
                 sa_province = raw_shipping_address['province']
                 sa_zip = raw_shipping_address['zip']
-                #my_conn.exec_prepared('statement6', [charge_id, sa_address1, sa_address2, sa_city, sa_company, sa_country, sa_first_name, sa_last_name, sa_phone, sa_province, sa_zip])
+                
+
+                #construct hash and send to method to determine if insert or update
+                charge_shipping_address_hash = {"charge_id" => charge_id, "address1" => sa_address1, "address2" => sa_address2, "city" => sa_city, "company" => sa_company, "country" => sa_country, "first_name" => sa_first_name, "last_name" => sa_last_name, "phone" => sa_phone, "province" => sa_province, "zip" => sa_zip}
+                insert_update_shipping_address(uri, charge_shipping_address_hash)
+
 
                 shipping_lines = charge['shipping_lines'][0]
                 if !shipping_lines.nil?
@@ -449,7 +483,14 @@ module EllieHelper
                     sl_tax_lines = shipping_lines['tax_lines'].to_json
                     sl_carrier_identifier = shipping_lines['carrier_identifier']
                     sl_request_fulfillment_service_id = shipping_lines['request_fulfillment_service_id']
-                    #my_conn.exec_prepared('statement7', [charge_id, sl_code, sl_price, sl_source, sl_title, sl_tax_lines, sl_carrier_identifier, sl_request_fulfillment_service_id])
+                    
+
+                    #construct hash and send to method to check to insert or update
+                    shipping_lines_hash = {"charge_id" => charge_id, "code" => sl_code, "price" => sl_price, "source" => sl_source, "title" => sl_title, "tax_lines" => sl_tax_lines, "carrier_identifier" => sl_carrier_identifier, "request_fulfillment_service_id" => sl_request_fulfillment_service_id}
+
+                    insert_update_shipping_lines(uri, shipping_lines_hash)
+
+
                 end
 
 
@@ -466,7 +507,7 @@ module EllieHelper
                 total_price = charge['total_price']
                 updated_at = charge['updated_at']
 
-                #my_conn.exec_prepared('statement1', [ address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at,  discount_codes ])
+                #construct hash, send it to method to either insert or update
                 my_main_charge_hash = {"address_id" => address_id, "billing_address" => billing_address, "client_details" => client_details, "created_at" => created_at, "customer_hash" => customer_hash, "customer_id" => customer_id, "first_name" => first_name, "charge_id" => charge_id, "last_name" => last_name,"line_items" => line_items, "note" => note, "note_attributes" => note_attributes, "processed_at" => processed_at, "scheduled_at" => scheduled_at, "shipments_count" => shipments_count, "shipping_address" => shipping_address, "shopify_order_id" => shopify_order_id, "status" => status, "sub_total" => sub_total, "sub_total_price" => sub_total_price, "tags" => tags,"tax_lines" => tax_lines, "total_discounts" => total_discounts, "total_line_items_price" => total_line_items_price, "total_tax" => total_tax, "total_weight" => total_weight, "total_price" => total_price, "updated_at" => updated_at,  "discount_codes" => discount_codes }
                 puts "Checking for insert or update main charge table"
                 insert_update_main_charge(uri, my_main_charge_hash)
@@ -482,6 +523,260 @@ module EllieHelper
         puts "All done with downloading today's charges"
         puts "Ran #{(Time.now - start).ceil} seconds"
 
+    end
+
+    def insert_update_charge_billing_address(uri, charge_billing_address_hash)
+        charge_id = charge_billing_address_hash['charge_id']
+        billing_address1 = charge_billing_address_hash['billing_address1']
+        billing_address2 = charge_billing_address_hash['billing_address2']
+        billing_address_city = charge_billing_address_hash['billing_address_city']
+        billing_address_company = charge_billing_address_hash['billing_address_company']
+        billing_address_country = charge_billing_address_hash['billing_address_country']
+        billing_address_first_name = charge_billing_address_hash['billing_address_first_name']
+        billing_address_last_name = charge_billing_address_hash['billing_address_last_name']
+        billing_address_phone = charge_billing_address_hash['billing_address_phone']
+        billing_address_province = charge_billing_address_hash['billing_address_province']
+        billing_address_zip = charge_billing_address_hash['billing_address_zip']
+        
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+
+        my_insert = "insert into charge_billing_address (charge_id, address1, address2, city, company, country, first_name, last_name, phone, province, zip) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement1', "#{my_insert}")
+        my_temp_update = "update charge_billing_address set address1 = $1, address2 = $2, city = $3, company = $4, country = $5, first_name = $6, last_name = $7, phone = $8, province = $9, zip = $10 where charge_id = $11"
+        my_conn.prepare('statement2', "#{my_temp_update}")
+        temp_select = "select * from charge_billing_address where charge_id = \'#{charge_id}\'"
+        temp_result = my_conn.exec(temp_select)
+        if !temp_result.num_tuples.zero?
+            puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            puts "Found existing charge_billing_address record"
+            temp_result.each do |myrow|
+                puts myrow.inspect
+                charge_id = myrow['charge_id']
+                puts "Charge ID #{charge_id}"
+                indy_result = my_conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id])
+                puts indy_result.inspect
+                puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+            end
+        else
+            puts "*******************************"
+            puts "Charge_billing_address Record does not exist, inserting"
+            puts "*******************************"
+            
+            my_conn.exec_prepared('statement1', [ charge_id, billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip ])
+            puts "inserted charge_client_details: #{charge_id} browser stuff"
+        
+        end
+        my_conn.close
+
+    end
+
+    def insert_update_charge_client_details(uri, charge_client_details_hash)
+        charge_id = charge_client_details_hash['charge_id']
+        browser_ip = charge_client_details_hash['browser_ip']
+        user_agent = charge_client_details_hash['user_agent']
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+
+        my_insert = "insert into charge_client_details (charge_id, browser_ip, user_agent) values ($1, $2, $3)"
+        my_conn.prepare('statement1', "#{my_insert}")
+        my_temp_update = "update charge_client_details set browser_ip = $1, user_agent = $2 where charge_id = $3"
+        my_conn.prepare('statement2', "#{my_temp_update}")
+        temp_select = "select * from charge_client_details where charge_id = \'#{charge_id}\'"
+        temp_result = my_conn.exec(temp_select)
+        if !temp_result.num_tuples.zero?
+            puts "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+            puts "Found existing charge_client_details record"
+            temp_result.each do |myrow|
+                puts myrow.inspect
+                charge_id = myrow['charge_id']
+                puts "Charge ID #{charge_id}"
+                indy_result = my_conn.exec_prepared('statement2', [browser_ip, user_agent, charge_id])
+                puts indy_result.inspect
+                puts "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+
+            end
+        else
+            puts "*******************************"
+            puts "Charge_Client_Details Record does not exist, inserting"
+            puts "*******************************"
+            
+            my_conn.exec_prepared('statement1', [ charge_id, browser_ip, user_agent ])
+            puts "inserted charge_client_details: #{charge_id} browser stuff"
+        
+        end
+        my_conn.close
+
+    end
+
+    def special_delete_variable_line_items(uri, charge_id)
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        my_delete = "delete from charge_variable_line_items where charge_id = \'#{charge_id}\'"  
+        my_conn.exec(my_delete) 
+
+    end
+
+    def insert_update_charge_variable_line_items(uri, charge_variable_line_items)
+        #Special case, can have many or one or none charge_line_items, so we delete"
+        #EVERTHING prior method call for charge_id
+        #and just re-insert everything for that charge id.
+
+        charge_id = charge_variable_line_items['charge_id']
+        name = charge_variable_line_items['name']
+        value = charge_variable_line_items['value']
+        
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        if !name.nil? && !value.nil?
+            my_insert = "insert into charge_variable_line_items (charge_id, name, value) values ($1, $2, $3)"
+            my_conn.prepare('statement1', "#{my_insert}")
+            my_insert_result = my_conn.exec_prepared('statement1', [ charge_id, name, value ])
+            puts my_insert_result.inspect
+            puts "inserted charge_variable_line_items: #{charge_id} and good to go here"
+        end
+           
+        my_conn.close
+
+    end
+
+    def insert_update_charge_fixed_line_items(uri, charge_fixed_line_items_hash)
+    
+        charge_id = charge_fixed_line_items_hash['charge_id']
+        grams = charge_fixed_line_items_hash['grams']
+        price = charge_fixed_line_items_hash['price'].to_f
+        price = price.round(2)
+        quantity = charge_fixed_line_items_hash['quantity'].to_i
+        shopify_product_id = charge_fixed_line_items_hash['shopify_product_id']
+        shopify_variant_id = charge_fixed_line_items_hash['shopify_variant_id']
+        sku = charge_fixed_line_items_hash['sku']
+        subscription_id = charge_fixed_line_items_hash['subscription_id']
+        title = charge_fixed_line_items_hash['title']
+        variant_title = charge_fixed_line_items_hash['variant_title']
+        vendor = charge_fixed_line_items_hash['vendor']
+
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        my_insert = "insert into charge_fixed_line_items (charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement1', "#{my_insert}")
+        my_temp_update = "update charge_fixed_line_items set grams = $1, price = $2,  quantity = $3, shopify_product_id = $4, shopify_variant_id = $5, sku = $6, subscription_id = $7, title = $8, variant_title = $9, vendor = $10 where charge_id = $11 "
+        my_conn.prepare('statement2', "#{my_temp_update}")
+        temp_select = "select * from charge_fixed_line_items where charge_id = \'#{charge_id}\'"
+        temp_result = my_conn.exec(temp_select)
+        if !temp_result.num_tuples.zero?
+            puts "???????????????????????????????"
+            puts "Found existing charge_fixed_line_items record"
+            temp_result.each do |myrow|
+                puts myrow.inspect
+                charge_id = myrow['charge_id']
+                puts "Charge ID #{charge_id}"
+                indy_result = my_conn.exec_prepared('statement2', [grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor, charge_id])
+                puts indy_result.inspect
+                puts "???????????????????????????"
+
+            end
+        else
+            puts "*******************************"
+            puts "Charge Fixed Line Items Record does not exist, inserting"
+            puts "*******************************"
+            
+            my_conn.exec_prepared('statement1', [ charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor ])
+            puts "inserted charge_fixed_line_items: #{charge_id} oh yeah"
+        
+        end
+        my_conn.close
+    end
+
+    def insert_update_shipping_address(uri, charge_shipping_address_hash)
+        
+        charge_id = charge_shipping_address_hash['charge_id']
+        address1 = charge_shipping_address_hash['address1']
+        address2 = charge_shipping_address_hash['address2']
+        city = charge_shipping_address_hash['city']
+        company = charge_shipping_address_hash['company']
+        country = charge_shipping_address_hash['country']
+        first_name = charge_shipping_address_hash['first_name']
+        last_name = charge_shipping_address_hash['last_name']
+        phone = charge_shipping_address_hash['phone']
+        province = charge_shipping_address_hash['province']
+        zip = charge_shipping_address_hash['zip']
+
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        my_insert = "insert into charges_shipping_address (charge_id, address1, address2, city, company, country, first_name, last_name, phone, province, zip) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement1', "#{my_insert}")
+        my_temp_update = "update charges_shipping_address set address1 = $1, address2 = $2,  city = $3, company = $4, country = $5, first_name = $6, last_name = $7, phone = $8, province = $9, zip = $10 where charge_id = $11 "
+        my_conn.prepare('statement2', "#{my_temp_update}")
+        temp_select = "select * from charges_shipping_address where charge_id = \'#{charge_id}\'"
+        temp_result = my_conn.exec(temp_select)
+        if !temp_result.num_tuples.zero?
+            puts "++++++++++++++++++++++++"
+            puts "Found existing charge_shipping_address record"
+            temp_result.each do |myrow|
+                puts myrow.inspect
+                charge_id = myrow['charge_id']
+                puts "Charge ID #{charge_id}"
+                indy_result = my_conn.exec_prepared('statement2', [address1, address2, city, company, country, first_name, last_name, phone, province, zip, charge_id])
+                puts indy_result.inspect
+                puts "++++++++++++++++++++++++++"
+
+            end
+        else
+            puts "*******************************"
+            puts "Shipping address Record does not exist, inserting"
+            puts "*******************************"
+            
+            my_conn.exec_prepared('statement1', [ charge_id, address1, address2, city, company, country, first_name, last_name, phone, province, zip ])
+            puts "inserted charge_shipping_address: #{charge_id} !!!!"
+        
+        end
+        my_conn.close
+    end
+
+
+    def insert_update_shipping_lines(uri, shipping_lines_hash)
+        
+        charge_id = shipping_lines_hash['charge_id']
+        code = shipping_lines_hash['code']
+        price = shipping_lines_hash['price']
+        my_source = shipping_lines_hash['source']
+        title = shipping_lines_hash['title']
+        tax_lines = shipping_lines_hash['tax_lines']
+        carrier_identifier = shipping_lines_hash['carrier_identifier']
+        request_fulfillment_service_id = shipping_lines_hash['request_fulfillment_service_id']
+
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        my_insert = "insert into charges_shipping_lines (charge_id, code, price, source, title, tax_lines, carrier_identifier, request_fulfillment_service_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+        my_conn.prepare('statement1', "#{my_insert}")
+        my_temp_update = "update charges_shipping_lines set code = $1, price = $2,  source = $3, title = $4, tax_lines = $5, carrier_identifier = $6, request_fulfillment_service_id = $7 where charge_id = $8 "
+        my_conn.prepare('statement2', "#{my_temp_update}")
+        temp_select = "select * from charges_shipping_lines where charge_id = \'#{charge_id}\'"
+        temp_result = my_conn.exec(temp_select)
+        if !temp_result.num_tuples.zero?
+            puts "@@@@@@@@@@@@@@@@@@"
+            puts "Found existing charge_shipping_lines record"
+            temp_result.each do |myrow|
+                puts myrow.inspect
+                charge_id = myrow['charge_id']
+                puts "Charge ID #{charge_id}"
+                indy_result = my_conn.exec_prepared('statement2', [code, price, my_source, title, tax_lines, carrier_identifier, request_fulfillment_service_id, charge_id])
+                puts indy_result.inspect
+                puts "@@@@@@@@@@@@@@@@@@@@"
+
+            end
+        else
+            puts "*******************************"
+            puts "Record does not exist, inserting"
+            puts "*******************************"
+            
+            my_conn.exec_prepared('statement1', [ charge_id, code, price, my_source, title, tax_lines, carrier_identifier, request_fulfillment_service_id ])
+            puts "inserted charge_shipping_lines: #{charge_id}"
+        
+        end
+        my_conn.close
+        
     end
 
     def insert_update_main_charge(uri, my_main_charge_hash)
@@ -532,7 +827,7 @@ module EllieHelper
             puts "&&&&&&&&&&&&&&&&&"
             puts "Found existing record"
             temp_result.each do |myrow|
-                puts myrow.inspect
+                #puts myrow.inspect
                 charge_id = myrow['charge_id']
                 puts "Charge ID #{charge_id}"
                 indy_result = my_conn.exec_prepared('statement2', [address_id, billing_address,client_details, customer_hash, customer_id, first_name, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at, discount_codes, charge_id])
@@ -623,8 +918,9 @@ module EllieHelper
                 #insert charge_billing_address sub-table
                 my_conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id ])
 
-                my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
-
+                if !browser_ip.nil?
+                    my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
+                end
 
                 last_name = charge['last_name']
                 line_items = charge['line_items'].to_json
@@ -637,7 +933,9 @@ module EllieHelper
                         myvalue = nil
                     end
                     puts "#{charge_id}: #{myname} -> #{myvalue}"
-                    my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
+                    if !myvalue.nil?
+                        my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
+                    end
                 end
                 
                 grams = raw_line_items['grams']
