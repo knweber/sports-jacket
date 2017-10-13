@@ -86,3 +86,8 @@ desc "do full or partial pull of charge table and associated tables and add to D
 task :charge_pull, [:args] do |t, args|
     DetermineInfo::InfoGetter.new.handle_charges(*args)
 end
+
+desc "do full or partial pull of order table and associated tables and add to DB"
+task :order_pull, [:args] do |t, args|
+    DetermineInfo::InfoGetter.new.handle_orders(*args)
+end

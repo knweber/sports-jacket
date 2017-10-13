@@ -834,6 +834,33 @@ module DetermineInfo
             end
         end
 
+        def handle_orders(option)
+            params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
+            if option == "full_pull"
+                puts "Doing full pull of orders table and associated order tables"
+                #delete tables and do full pull
+                #puts @uri.inspect
+                
+                Resque.enqueue(PullOrder, params)
+
+            elsif option == "yesterday"
+                puts "Doing partial pull of orders table and associated tables since yesterday"
+                Resque.enqueue(PullOrder, params)
+            else
+                puts "sorry, cannot understand option #{option}, doing nothing."
+            end
+
+        end
+
+        class PullOrder
+            extend EllieHelper
+            @queue = "pull_order"
+            def self.perform(params)
+                puts params.inspect
+                get_order_full(params)
+            end
+        end
+
 
     end
 end
