@@ -1807,7 +1807,7 @@ module EllieHelper
                 properties  = sub['properties'].to_json
                 #conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
 
-                subscription_hash = {"subscription_id" => id, "address_id" => address_id, "customer_id" => customer_id, "created_at" => created_at, "updated_at" => updated_at, "next_charge_scheduled_at" => next_charge_scheduled_at, "cancelled_at" => cancelled_at, "product_title" => product_title, "price" => price, "quantity" => quantity, "status" => status, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "order_interval_unit" => order_interval_unit, "order_interval_frequency" => order_interval_frequency, "order_day_of_month" => order_day_of_month, "order_day_of_week" => order_day_of_week, "properties" => properties}
+                subscription_hash = {"subscription_id" => id, "address_id" => address_id, "customer_id" => customer_id, "created_at" => created_at, "updated_at" => updated_at, "next_charge_scheduled_at" => next_charge_scheduled_at, "cancelled_at" => cancelled_at, "product_title" => product_title, "price" => price, "quantity" => quantity, "status" => status, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "order_interval_unit" => order_interval_unit, "order_interval_frequency" => order_interval_frequency, "charge_interval_frequency" => charge_interval_frequency, "order_day_of_month" => order_day_of_month, "order_day_of_week" => order_day_of_week, "properties" => properties}
 
                 insert_update_subscription(uri, subscription_hash)
                 
@@ -1847,17 +1847,19 @@ module EllieHelper
         cancelled_at = subscription_hash['cancelled_at']
         product_title = subscription_hash['product_title']
         price = subscription_hash['price']
-        quantity = subscription_hash['quantity'].to_i
+        quantity = subscription_hash['quantity']
         status = subscription_hash['status']
         shopify_product_id = subscription_hash['shopify_product_id']
         shopify_variant_id = subscription_hash['shopify_variant_id']
         sku = subscription_hash['sku']
         order_interval_unit = subscription_hash['order_interval_unit']
-        order_interval_frequency = subscription_hash['order_interval_frequency'].to_i
-        order_day_of_month = subscription_hash['order_day_of_month'].to_i
-        order_day_of_week = subscription_hash['order_day_of_week'].to_i
-        properties = subscription_hash['properties'].to_json
-
+        order_interval_frequency = subscription_hash['order_interval_frequency']
+        charge_interval_frequency = subscription_hash['charge_interval_frequency']
+        order_day_of_month = subscription_hash['order_day_of_month']
+        order_day_of_week = subscription_hash['order_day_of_week']
+        properties = subscription_hash['properties']
+        #new_properties = eval(properties)
+         
         myuri = URI.parse(uri)
         my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
 
@@ -1879,8 +1881,8 @@ module EllieHelper
                 #order_id = myrow['order_id']
                 puts "subscription ID #{subscription_id}"
                 
-                #indy_result = my_conn.exec_prepared('statement2', [ address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties,subscription_id])
-                #puts indy_result.inspect
+                indy_result = my_conn.exec_prepared('statement2', [ address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties, subscription_id])
+                puts indy_result.inspect
                 puts "&&&&&&&&&&&&&&&&&&"
             end
         else
@@ -1888,7 +1890,7 @@ module EllieHelper
             puts "subscription Record does not exist, inserting"
             puts "*******************************"
             
-            #my_conn.exec_prepared('statement1', [ order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address])
+            my_conn.exec_prepared('statement1', [ subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
             puts "inserted subscription #{subscription_id}"
         end
         my_conn.close
