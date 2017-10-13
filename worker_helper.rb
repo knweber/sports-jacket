@@ -1812,6 +1812,9 @@ module EllieHelper
                 insert_update_subscription(uri, subscription_hash)
                 
                 
+                special_handling_sub_line_items(uri, id)
+
+
                 puts sub['properties'].inspect
                 my_temp_array = sub['properties']
                 my_temp_array.each do |temp|
@@ -1819,6 +1822,10 @@ module EllieHelper
                     temp_name = temp['name']
                     temp_value = temp['value']
                     puts "#{temp_name}, #{temp_value}"
+                    if !temp_value.nil? && !temp_name.nil?
+                        sub_line_items_hash = {"subscription_id" => id, "name" => temp_name, "value" => temp_value}
+                        insert_update_sub_line_items(uri, sub_line_items_hash)
+                    end
                     #conn.exec_prepared('statement2', [id, temp_name, temp_value])
                 end
                 puts "**************"
@@ -1834,6 +1841,37 @@ module EllieHelper
         puts "Done with full download of partial subscriptions"      
         conn.close 
         
+    end
+
+    def special_handling_sub_line_items(uri, id)
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        my_delete = "delete from sub_line_items where subscription_id = \'#{id}\'"  
+        my_conn.exec(my_delete) 
+        my_conn.close
+
+    end
+
+    def insert_update_sub_line_items(uri, sub_line_items_hash)
+        #sub_line_items_hash = {"subscription_id" => id, "name" => temp_name, "value" => temp_value}
+        subscription_id = sub_line_items_hash['subscription_id']
+        myname = sub_line_items_hash['name']
+        myvalue = sub_line_items_hash['value']
+
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+
+        my_insert = "insert into sub_line_items (subscription_id, name, value) values ($1, $2, $3)"
+        
+        my_conn.prepare('statement1', "#{my_insert}")
+            
+        my_conn.exec_prepared('statement1', [ subscription_id, myname, myvalue ])
+        puts "inserted subscription #{subscription_id}"
+        
+        my_conn.close
+
+
+
     end
 
     def insert_update_subscription(uri, subscription_hash)
