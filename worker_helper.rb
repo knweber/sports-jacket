@@ -615,6 +615,7 @@ module EllieHelper
         my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
         my_delete = "delete from charge_variable_line_items where charge_id = \'#{charge_id}\'"  
         my_conn.exec(my_delete) 
+        my_conn.close
 
     end
 
@@ -1167,11 +1168,16 @@ module EllieHelper
                 product_title = raw_line_items['product_title']
                 #conn.exec_prepared('statement2', [ order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title ])
 
+                #determine if order_line_items_fixed exists, if so update, otherwise insert
+                order_line_items_fixed_hash = {"order_id" => order_id, "shopify_variant_id" => shopify_variant_id, "title" => title, "variant_title" => variant_title, "subscription_id" => subscription_id, "quantity" => quantity, "shopify_product_id" => shopify_product_id, "product_title" => product_title}
+                insert_update_order_line_items_fixed(uri, order_line_items_fixed_hash)
+
+
 
                 #before updating/inserting variable line items delete everything in that table
                 #with the id, and just insert only, its special case, can have many or one or
                 #none variable line items -- name/value pair.
-                special_delete_orders_variable_line_items(uri, charge_id)
+                special_delete_orders_variable_line_items(uri, order_id)
                 
                 variable_line_items = raw_line_items['properties']
                 variable_line_items.each do |myprop|
@@ -1179,12 +1185,13 @@ module EllieHelper
                     #puts myprop.inspect
                     myname = myprop['name']
                     myvalue = myprop['value']
-                    #conn.exec_prepared('statement3', [ order_id, myname, myvalue ])
+                    
                     #puts "^^^^^^^^^^^^^^^^^^^"
 
                     #special handling, send hash to method where it deletes if avail, 
                     #and then inserts key-value pair
-                    order_line_items_variable_hash = {"charge_id" => charge_id, "name" => myname, "value" => myvalue}
+                    order_line_items_variable_hash = {"order_id" => order_id, "name" => myname, "value" => myvalue}
+                    insert_update_order_line_item_variable(uri, order_line_items_variable_hash)
 
                 end
 
@@ -1256,6 +1263,89 @@ module EllieHelper
         conn.close
 
     end
+
+    def insert_update_order_line_items_fixed(uri, order_line_items_fixed_hash)
+        
+        order_id = order_line_items_fixed_hash['order_id']
+        shopify_variant_id = order_line_items_fixed_hash['shopify_variant_id']
+        title = order_line_items_fixed_hash['title']
+        variant_title = order_line_items_fixed_hash['variant_title']
+        subscription_id = order_line_items_fixed_hash['subscription_id']
+        quantity = order_line_items_fixed_hash['quantity']
+        shopify_product_id = order_line_items_fixed_hash['shopify_product_id']
+        product_title = order_line_items_fixed_hash['product_title']
+
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+
+        my_insert = "insert into order_line_items_fixed (order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+        
+        my_conn.prepare('statement1', "#{my_insert}")
+        my_temp_update = "update order_line_items_fixed set shopify_variant_id = $1, title = $2, variant_title = $3, subscription_id = $4, quantity = $5, shopify_product_id = $6, product_title = $7 where order_id = $8"
+        my_conn.prepare('statement2', "#{my_temp_update}")
+        #puts "got here eh"
+
+        temp_select = "select * from order_line_items_fixed where order_id = \'#{order_id}\'"
+        temp_result = my_conn.exec(temp_select)
+        if !temp_result.num_tuples.zero?
+            puts "&&&&&&&&&&&&&&&&&"
+            puts "Found existing order_line_items_fixed record"
+            temp_result.each do |myrow|
+                puts myrow.inspect
+                #order_id = myrow['order_id']
+                puts "order_line_items_fixed #{order_id}"
+                  
+                indy_result = my_conn.exec_prepared('statement2', [ shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title, order_id])
+                puts indy_result.inspect
+                puts "&&&&&&&&&&&&&&&&&&"
+            end
+        else
+            puts "*******************************"
+            puts "ORDER shipping address Record does not exist, inserting"
+            puts "*******************************"
+            
+            my_conn.exec_prepared('statement1', [ order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title ])
+            puts "inserted charge #{order_id}"
+        end
+        my_conn.close
+
+
+
+    end
+
+    def special_delete_orders_variable_line_items(uri, order_id)
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        my_delete = "delete from order_line_items_variable where order_id = \'#{order_id}\'"  
+        my_conn.exec(my_delete) 
+        my_conn.close
+
+
+    end
+
+    def insert_update_order_line_item_variable(uri, order_line_items_variable_hash)
+        #Special case, can have many or one or none order_line_items_variable, so we delete"
+        #EVERTHING prior method call for order_id
+        #and just re-insert everything for that order id.
+
+        order_id = order_line_items_variable_hash['order_id']
+        name = order_line_items_variable_hash['name']
+        value = order_line_items_variable_hash['value']
+        
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        if !name.nil? && !value.nil?
+            my_insert = "insert into order_line_items_variable (order_id, name, value) values ($1, $2, $3)"
+            my_conn.prepare('statement1', "#{my_insert}")
+            my_insert_result = my_conn.exec_prepared('statement1', [ order_id, name, value ])
+            puts my_insert_result.inspect
+            puts "inserted order_line_items_variable: #{order_id} and good to go here"
+        end
+           
+        my_conn.close  
+
+    end
+    
 
     def insert_update_orders_sa(uri, order_shipping_address_hash)
         order_id = order_shipping_address_hash['order_id']
