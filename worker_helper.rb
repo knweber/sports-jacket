@@ -1255,8 +1255,8 @@ module EllieHelper
             current = Time.now
             duration = (current - start).ceil
             puts "Been running #{duration} seconds" 
-            puts "Sleeping #{@sleep_recharge}"
-            sleep @sleep_recharge.to_i             
+            puts "Sleeping #{sleep_recharge}"
+            sleep sleep_recharge.to_i             
 
         end
         puts "All done with PARTIAL order download"
@@ -1673,12 +1673,306 @@ module EllieHelper
             current = Time.now
             duration = (current - start).ceil
             puts "Been running #{duration} seconds" 
-            puts "Sleeping #{@sleep_recharge}"
-            sleep @sleep_recharge.to_i             
+            puts "Sleeping #{sleep_recharge}"
+            sleep sleep_recharge.to_i             
 
         end
         puts "All done with FULL order download"
         conn.close
+    end
+
+
+    def get_sub_full(params)
+        option_value = params['option_value']
+        uri = params['connection']
+        sleep_recharge = params['sleep_recharge']
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        #puts my_conn.inspect
+        header_info = params['header_info']
+
+        if option_value == "full_pull"
+            #delete all order tables
+            puts "Deleting subscription table and associated tables"
+            subs_delete = "delete from subscriptions"
+            subs_reset = "ALTER SEQUENCE subscriptions_id_seq RESTART WITH 1"
+            my_conn.exec(subs_delete)
+            my_conn.exec(subs_reset)
+            sub_line_items_delete = "delete from sub_line_items"
+            sub_line_items_reset = "ALTER SEQUENCE sub_line_items_id_seq RESTART WITH 1"
+            my_conn.exec(sub_line_items_delete)
+            my_conn.exec(sub_line_items_reset)
+            puts "All done deleting and resetting subscription and associated tables"
+            num_subs = background_count_subscriptions(header_info)
+            puts "We have #{num_subs} full subscriptions"
+            background_load_full_subs(sleep_recharge, num_subs, header_info, uri)
+          
+          
+        
+        elsif option_value == "yesterday"
+            puts "Doing pull of subscriptions since yesterday"
+            num_subs = background_count_subscriptions_partial(header_info)
+            puts "We have #{num_subs} subscriptions since yesterday to download"
+            background_load_partial_subs(sleep_recharge, num_subs, header_info, uri)
+
+
+        else
+            puts "Can't understand option #{option_value} doing nothing"
+        end
+    end  
+    
+    def background_count_subscriptions(header_info)
+        #puts "got here dude"
+        subscriptions = HTTParty.get("https://api.rechargeapps.com/subscriptions/count", :headers => header_info)
+        #puts response.inspect
+        my_response = JSON.parse(subscriptions)
+        #puts my_response.inspect
+        my_count = my_response['count'].to_i
+        #puts "We have #{my_count} subscriptions"
+        return my_count
+
+    end
+
+    def background_count_subscriptions_partial(header_info)
+        yesterday = Date.today - 1
+        my_yesterday = yesterday.strftime("%Y-%m-%d")
+        puts my_yesterday
+
+        #?created_at_min='2015-01-01
+        subscriptions = HTTParty.get("https://api.rechargeapps.com/subscriptions/count?updated_at_min=\'#{my_yesterday}\'", :headers => header_info)
+        #puts response.inspect
+        my_response = JSON.parse(subscriptions)
+        #puts my_response.inspect
+        my_count = my_response['count'].to_i
+        #puts "We have #{my_count} subscriptions"
+        return my_count
+
+    end
+
+    def background_load_partial_subs(sleep_recharge, num_subs, header_info, uri)
+        puts num_subs
+        puts header_info
+        myuri = URI.parse(uri)
+        conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        
+        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)"
+        #conn.prepare('statement1', "#{my_insert}")
+        my_line_item_insert = "insert into sub_line_items (subscription_id, name, value) values ($1, $2, $3)"
+        #conn.prepare('statement2', "#{my_line_item_insert}")
+        my_temp_array = Array.new
+
+        yesterday = Date.today - 1
+        my_yesterday = yesterday.strftime("%Y-%m-%d")
+        #puts my_yesterday
+        
+        start = Time.now
+                
+        page_size = 250
+        num_pages = (num_subs/page_size.to_f).ceil
+        1.upto(num_pages) do |page|
+            mysubs = HTTParty.get("https://api.rechargeapps.com/subscriptions?updated_at_min=\'#{my_yesterday}\'&limit=250&page=#{page}", :headers => header_info)
+            #puts mysubs.inspect
+            local_sub = mysubs['subscriptions']
+            local_sub.each do |sub|
+            if !sub['properties'].nil? && sub['properties'] != []
+                puts "**************"
+                puts sub.inspect
+                id = sub['id']
+                address_id = sub['address_id']
+                customer_id = sub['customer_id']
+                created_at = sub['created_at']
+                updated_at = sub['updated_at']
+                #handle nils for these
+                next_charge_scheduled_at = sub['next_charge_scheduled_at']
+                cancelled_at = sub['cancelled_at']
+                                    
+                
+                product_title = sub['product_title']
+                variant_title = sub['variant_title']
+                price = sub['price']
+                quantity = sub['quantity']
+                shopify_product_id = sub['shopify_product_id']
+                shopify_variant_id = sub['shopify_variant_id']
+                sku = sub['sku']
+                status = sub['status']
+                order_interval_unit = sub['order_interval_unit']
+                order_interval_frequency  = sub['order_interval_frequency']
+                charge_interval_frequency = sub['charge_interval_frequency']
+                cancellation_reason = sub['cancellation_reason']
+                                    
+                order_day_of_week = sub['order_day_of_week']
+                                    
+                order_day_of_month = sub['order_day_of_month']
+                                    
+                properties  = sub['properties'].to_json
+                #conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
+
+                subscription_hash = {"subscription_id" => id, "address_id" => address_id, "customer_id" => customer_id, "created_at" => created_at, "updated_at" => updated_at, "next_charge_scheduled_at" => next_charge_scheduled_at, "cancelled_at" => cancelled_at, "product_title" => product_title, "price" => price, "quantity" => quantity, "status" => status, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "order_interval_unit" => order_interval_unit, "order_interval_frequency" => order_interval_frequency, "order_day_of_month" => order_day_of_month, "order_day_of_week" => order_day_of_week, "properties" => properties}
+
+                insert_update_subscription(uri, subscription_hash)
+                
+                
+                puts sub['properties'].inspect
+                my_temp_array = sub['properties']
+                my_temp_array.each do |temp|
+                    #puts temp.inspect
+                    temp_name = temp['name']
+                    temp_value = temp['value']
+                    puts "#{temp_name}, #{temp_value}"
+                    #conn.exec_prepared('statement2', [id, temp_name, temp_value])
+                end
+                puts "**************"
+            end
+        end 
+        current = Time.now
+        duration = (current - start).ceil
+        puts "Been running #{duration} seconds" 
+        puts "Done with page #{page}"
+        puts "Sleeping #{sleep_recharge}"
+        sleep sleep_recharge.to_i
+        end  
+        puts "Done with full download of partial subscriptions"      
+        conn.close 
+        
+    end
+
+    def insert_update_subscription(uri, subscription_hash)
+        
+        subscription_id = subscription_hash['subscription_id']
+        address_id = subscription_hash['address_id']
+        customer_id = subscription_hash['customer_id']
+        created_at = subscription_hash['created_at']
+        updated_at = subscription_hash['updated_at']
+        next_charge_scheduled_at = subscription_hash['next_charge_scheduled_at']
+        cancelled_at = subscription_hash['cancelled_at']
+        product_title = subscription_hash['product_title']
+        price = subscription_hash['price']
+        quantity = subscription_hash['quantity'].to_i
+        status = subscription_hash['status']
+        shopify_product_id = subscription_hash['shopify_product_id']
+        shopify_variant_id = subscription_hash['shopify_variant_id']
+        sku = subscription_hash['sku']
+        order_interval_unit = subscription_hash['order_interval_unit']
+        order_interval_frequency = subscription_hash['order_interval_frequency'].to_i
+        order_day_of_month = subscription_hash['order_day_of_month'].to_i
+        order_day_of_week = subscription_hash['order_day_of_week'].to_i
+        properties = subscription_hash['properties'].to_json
+
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+
+        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)"
+        
+        my_conn.prepare('statement1', "#{my_insert}")
+        my_temp_update = "update subscriptions set address_id = $1, customer_id = $2, created_at = $3, updated_at = $4, next_charge_scheduled_at = $5, cancelled_at = $6, product_title = $7, price = $8, quantity = $9, status = $10, shopify_product_id = $11, shopify_variant_id = $12, sku = $13, order_interval_unit = $14, order_interval_frequency = $15, charge_interval_frequency = $16, order_day_of_month = $17, order_day_of_week = $18, raw_line_item_properties = $19 where subscription_id = $20"
+        my_conn.prepare('statement2', "#{my_temp_update}")
+        #puts "got here eh"
+
+        temp_select = "select * from subscriptions where subscription_id = \'#{subscription_id}\'"
+        temp_result = my_conn.exec(temp_select)
+
+        if !temp_result.num_tuples.zero?
+            puts "&&&&&&&&&&&&&&&&&"
+            puts "Found existing subscription record"
+            temp_result.each do |myrow|
+                puts myrow.inspect
+                #order_id = myrow['order_id']
+                puts "subscription ID #{subscription_id}"
+                
+                #indy_result = my_conn.exec_prepared('statement2', [ address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties,subscription_id])
+                #puts indy_result.inspect
+                puts "&&&&&&&&&&&&&&&&&&"
+            end
+        else
+            puts "*******************************"
+            puts "subscription Record does not exist, inserting"
+            puts "*******************************"
+            
+            #my_conn.exec_prepared('statement1', [ order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address])
+            puts "inserted subscription #{subscription_id}"
+        end
+        my_conn.close
+
+
+
+    end
+
+    def background_load_full_subs(sleep_recharge, num_subs, header_info, uri)
+
+        myuri = URI.parse(uri)
+        conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+
+        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)"
+        conn.prepare('statement1', "#{my_insert}")
+        my_line_item_insert = "insert into sub_line_items (subscription_id, name, value) values ($1, $2, $3)"
+        conn.prepare('statement2', "#{my_line_item_insert}")
+        my_temp_array = Array.new
+
+        start = Time.now
+        
+        page_size = 250
+        num_pages = (num_subs/page_size.to_f).ceil
+        1.upto(num_pages) do |page|
+        mysubs = HTTParty.get("https://api.rechargeapps.com/subscriptions?limit=250&page=#{page}", :headers => header_info)
+        #puts mysubs.inspect
+        local_sub = mysubs['subscriptions']
+        local_sub.each do |sub|
+        if !sub['properties'].nil? && sub['properties'] != []
+            puts "**************"
+            puts sub.inspect
+            id = sub['id']
+            address_id = sub['address_id']
+            customer_id = sub['customer_id']
+            created_at = sub['created_at']
+            updated_at = sub['updated_at']
+            #handle nils for these
+            next_charge_scheduled_at = sub['next_charge_scheduled_at']
+            cancelled_at = sub['cancelled_at']
+                            
+        
+            product_title = sub['product_title']
+            variant_title = sub['variant_title']
+            price = sub['price']
+            quantity = sub['quantity']
+            shopify_product_id = sub['shopify_product_id']
+            shopify_variant_id = sub['shopify_variant_id']
+            sku = sub['sku']
+            status = sub['status']
+            order_interval_unit = sub['order_interval_unit']
+            order_interval_frequency  = sub['order_interval_frequency']
+            charge_interval_frequency = sub['charge_interval_frequency']
+            cancellation_reason = sub['cancellation_reason']
+                            
+            order_day_of_week = sub['order_day_of_week']
+                            
+            order_day_of_month = sub['order_day_of_month']
+                            
+            properties  = sub['properties'].to_json
+            conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
+        
+        
+            puts sub['properties'].inspect
+            my_temp_array = sub['properties']
+            my_temp_array.each do |temp|
+                #puts temp.inspect
+                temp_name = temp['name']
+                temp_value = temp['value']
+                puts "#{temp_name}, #{temp_value}"
+                conn.exec_prepared('statement2', [id, temp_name, temp_value])
+                end
+                puts "**************"
+            end
+        end 
+        current = Time.now
+        duration = (current - start).ceil
+        puts "Been running #{duration} seconds" 
+        puts "Done with page #{page}"
+        puts "Sleeping #{sleep_recharge}"
+        sleep sleep_recharge.to_i
+        end 
+        puts "All done with full download of subscriptions"       
+        conn.close 
+
     end
 
 end

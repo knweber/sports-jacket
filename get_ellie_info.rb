@@ -862,5 +862,34 @@ module DetermineInfo
         end
 
 
+        def handle_subscriptions(option)
+            params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
+            if option == "full_pull"
+                puts "Doing full pull of subscription table and associated tables"
+                #delete tables and do full pull
+                #puts @uri.inspect
+                
+                Resque.enqueue(PullSubscription, params)
+
+            elsif option == "yesterday"
+                puts "Doing partial pull of subscription table and associated tables since yesterday"
+                Resque.enqueue(PullSubscription, params)
+            else
+                puts "sorry, cannot understand option #{option}, doing nothing."
+            end
+
+        end
+
+        class PullSubscription
+            extend EllieHelper
+            @queue = "pull_subscriptions"
+            def self.perform(params)
+                puts params.inspect
+                get_sub_full(params)
+            end
+
+        end
+
+
     end
 end
