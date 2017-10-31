@@ -889,6 +889,7 @@ module EllieHelper
                 puts "-------------"
                 puts charge.inspect
                 puts "-------------"
+                begin
                 address_id = charge['address_id']
                 raw_billing_address = charge['billing_address']
                 billing_address = charge['billing_address'].to_json
@@ -919,7 +920,10 @@ module EllieHelper
                 first_name = charge['first_name']
                 charge_id = charge['id']
                 #insert charge_billing_address sub-table
+                if !raw_billing_address.nil?
                 my_conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id ])
+                end
+                puts "handled billing address"
 
                 if !browser_ip.nil?
                     my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
@@ -928,21 +932,31 @@ module EllieHelper
                 last_name = charge['last_name']
                 line_items = charge['line_items'].to_json
                 raw_line_items = charge['line_items'][0]
-                raw_line_items['properties'].each do |myitem|
-                    puts myitem
-                    myname = myitem['name']
-                    myvalue = myitem['value']
-                    if myvalue == "" 
-                        myvalue = nil
+                if !raw_line_items.empty?  && !raw_line_items.nil?
+                    raw_line_items['properties'].each do |myitem|
+                        puts myitem
+                        myname = myitem['name']
+                        myvalue = myitem['value']
+                        if myvalue == "" 
+                            myvalue = nil
+                        end
+                        puts "#{charge_id}: #{myname} -> #{myvalue}"
+                        if !myvalue.nil?
+                            my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
+                        end
                     end
-                    puts "#{charge_id}: #{myname} -> #{myvalue}"
-                    if !myvalue.nil?
-                        my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
-                    end
-                end
+                
+                
                 
                 grams = raw_line_items['grams']
                 price = raw_line_items['price']
+                end
+            rescue
+                puts "We had an error executing statement5 "
+            else
+                puts "No error here with statement5"
+            end
+
                 if grams.nil?
                     grams = 0
                 else
@@ -955,6 +969,7 @@ module EllieHelper
                     price = price.round(2)
                 end
 
+                begin
                 quantity = raw_line_items['quantity']
                 shopify_product_id = raw_line_items['shopify_product_id']
                 shopify_variant_id = raw_line_items['shopify_variant_id']
@@ -965,8 +980,13 @@ module EllieHelper
                 vendor = raw_line_items['vendor']
 
                 my_conn.exec_prepared('statement4', [charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor])
+                rescue 
+                    puts "Error executing statement4"
+                else
+                    puts "No errors executing statement4"
+                end
 
-
+                begin
                 note = charge['note']
                 note_attributes = charge['note_attributes'].to_json
                 processed_at = charge['processed_at']
@@ -974,6 +994,7 @@ module EllieHelper
                 shipments_count = charge['shipments_count']
                 shipping_address = charge['shipping_address'].to_json
                 raw_shipping_address = charge['shipping_address']
+                if !raw_shipping_address.nil?
                 sa_address1 = raw_shipping_address['address1']
                 sa_address2 = raw_shipping_address['address2']
                 sa_city = raw_shipping_address['city']
@@ -985,7 +1006,15 @@ module EllieHelper
                 sa_province = raw_shipping_address['province']
                 sa_zip = raw_shipping_address['zip']
                 my_conn.exec_prepared('statement6', [charge_id, sa_address1, sa_address2, sa_city, sa_company, sa_country, sa_first_name, sa_last_name, sa_phone, sa_province, sa_zip])
+                end
+                puts "handled shipping address"
+            rescue
+                puts "Error in statement6"
+            else
+                puts "No error in statement6" 
+            end
 
+                begin
                 shipping_lines = charge['shipping_lines'][0]
                 if !shipping_lines.nil?
                     sl_code = shipping_lines['code']
@@ -999,7 +1028,14 @@ module EllieHelper
                     my_conn.exec_prepared('statement7', [charge_id, sl_code, sl_price, sl_source, sl_title, sl_tax_lines, sl_carrier_identifier, sl_request_fulfillment_service_id])
                 end
 
+            rescue
+                puts "Error in statement7"
 
+            else
+                puts "No error in statement7"
+            end
+
+            begin
                 shopify_order_id = charge['shopify_order_id']
                 status = charge['status']
                 sub_total = charge['sub_total']
@@ -1013,8 +1049,21 @@ module EllieHelper
                 total_price = charge['total_price']
                 updated_at = charge['updated_at']
 
+                puts "ready to insert main record"
+
                 my_conn.exec_prepared('statement1', [ address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at,  discount_codes ])
+
+            rescue
+                puts "Error statement1"
+            else
+                puts "No error in statement1"
+            end
+
+
                 end
+
+            
+            
             current = Time.now
             duration = (current - start).ceil
             puts "Running #{duration} seconds"
