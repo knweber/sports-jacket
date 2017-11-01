@@ -1,49 +1,48 @@
 #file worker_helper.rb
 
 module EllieHelper
-  @@logger = Logger.new
 
   def get_customers_full(params)
-    @@logger.debug "EllieHelper#get_customers_full params: #{params}"
+    logger.debug "EllieHelper#get_customers_full params: #{params}"
     option_value = params['option_value']
     uri = params['connection']
     sleep_recharge = params['sleep_recharge']
-    @@logger.debug sleep_recharge
-    @@logger.debug "sleep recharge: #{sleep_recharge}"
-    @@logger.debug "uri"
+    logger.debug sleep_recharge
+    logger.debug "sleep recharge: #{sleep_recharge}"
+    logger.debug "uri"
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     header_info = params['header_info']
-    @@logger.debug "header info: #{header_info}"
+    logger.debug "header info: #{header_info}"
 
     #check full pull or partial since yesterday
 
     if option_value == "full_pull"
       #delete all customer_tables
-      @@logger.warn "Deleting customer table"
+      logger.warn "Deleting customer table"
       customers_delete = "delete from customers"
       customers_reset = "ALTER SEQUENCE customers_id_seq RESTART WITH 1"
       my_conn.exec(customers_delete)
       my_conn.exec(customers_reset)
-      @@logger.info "Deleted all customer table information and reset the id sequence"
+      logger.info "Deleted all customer table information and reset the id sequence"
       my_conn.close
       num_customers = background_count_customers(header_info)
-      @@logger.info "We have #{num_customers} to download"
+      logger.info "We have #{num_customers} to download"
       background_load_full_customers(sleep_recharge, num_customers, header_info, uri)
 
 
 
     elsif option_value == "yesterday"
-      @@logger.info "downloading only yesterday's customers"
+      logger.info "downloading only yesterday's customers"
       my_today = Date.today
-      @@logger.debug "Today is #{my_today}"
+      logger.debug "Today is #{my_today}"
       my_yesterday = my_today - 1
       num_updated_cust = background_count_yesterday_customers(my_yesterday, header_info)
-      @@logger.info "We have #{num_updated_cust} customers who are new or have been updated since yesterday"
+      logger.info "We have #{num_updated_cust} customers who are new or have been updated since yesterday"
       background_load_modified_customers(sleep_recharge, num_updated_cust, header_info, uri)
 
     else
-      @@logger.error "Sorry can't understand what the option_value #{option_value} means"
+      logger.error "Sorry can't understand what the option_value #{option_value} means"
     end
   end
 
@@ -53,12 +52,12 @@ module EllieHelper
     my_count = customer_count.parsed_response
     num_customers = my_count['count']
     num_customers = num_customers.to_i
-    @@logger.debug "EllieHelper#background_count_customers #{num_customers}"
+    logger.debug "EllieHelper#background_count_customers #{num_customers}"
     return num_customers
   end
 
   def background_load_full_customers(sleep_recharge, num_customers, my_header, uri)
-    @@logger.info "starting download"
+    logger.info "starting download"
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     my_insert = "insert into customers (customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
@@ -70,9 +69,9 @@ module EllieHelper
     1.upto(num_pages) do |page|
       customers = HTTParty.get("https://api.rechargeapps.com/customers?limit=250&page=#{page}", :headers => my_header)
       my_customers = customers.parsed_response['customers']
-      @@logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{customers.pretty_inspect}"
+      logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{customers.pretty_inspect}"
       my_customers.each do |mycust|
-        @@logger.debug 
+        logger.debug 
         customer_id = mycust['id']
         hash = mycust['hash']
         shopify_customer_id = mycust['shopify_customer_id']
@@ -94,14 +93,14 @@ module EllieHelper
         my_conn.exec_prepared('statement1', [customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
 
       end
-      @@logger.info "Done with page #{page}"
+      logger.info "Done with page #{page}"
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Running #{duration} seconds"
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Running #{duration} seconds"
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i 
     end
-    @@logger.info "All done"
+    logger.info "All done"
     my_conn.close
   end
 
@@ -109,7 +108,7 @@ module EllieHelper
     updated_at_min = my_yesterday.strftime("%Y-%m-%d")
     customer_count = HTTParty.get("https://api.rechargeapps.com/customers/count?updated_at_min=#{updated_at_min}", :headers => my_header)
     my_count = customer_count.parsed_response
-    @@logger.debug "EllieHelper#background_count_yesterday_customers count: my_count"
+    logger.debug "EllieHelper#background_count_yesterday_customers count: my_count"
     num_customers = my_count['count']
     num_customers = num_customers.to_i
     return num_customers
@@ -117,7 +116,7 @@ module EllieHelper
 
 
   def background_load_modified_customers(sleep_recharge, num_customers, my_header, uri)
-    @@logger.info "Doing partial download new or modified customers since yesterday"
+    logger.info "Doing partial download new or modified customers since yesterday"
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     my_insert = "insert into customers (customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
@@ -134,7 +133,7 @@ module EllieHelper
     1.upto(num_pages) do |page|
       customers = HTTParty.get("https://api.rechargeapps.com/customers?limit=250&page=#{page}", :headers => my_header)
       my_customers = customers.parsed_response['customers']
-      @@logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{my_customers.pretty_inspect}"
+      logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{my_customers.pretty_inspect}"
       my_customers.each do |mycust|
         customer_id = mycust['id']
         hash = mycust['hash']
@@ -157,30 +156,30 @@ module EllieHelper
         my_ind_select = "select * from customers where customer_id = \'#{customer_id}\'"
         temp_result = my_conn.exec(my_ind_select)
         if !temp_result.num_tuples.zero?
-          @@logger.info "Found existing record"
+          logger.info "Found existing record"
           temp_result.each do |myrow|
             customer_id = myrow['customer_id']
-            @@logger.info "Customer ID #{customer_id}"
+            logger.info "Customer ID #{customer_id}"
             indy_result = my_conn.exec_prepared('statement2', [hash, email,  updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status, customer_id])
-            @@logger.debug indy_result.inspect
+            logger.debug indy_result.inspect
           end
         else
-          @@logger.ingo "Need to insert a new record"
-          @@logger.info "inserting #{customer_id}, #{first_name} #{last_name}"
+          logger.ingo "Need to insert a new record"
+          logger.info "inserting #{customer_id}, #{first_name} #{last_name}"
           ins_result = my_conn.exec_prepared('statement1', [customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
-          @@logger.debug ins_result.inspect
+          logger.debug ins_result.inspect
           #sleep 4
         end
 
       end
-      @@logger.info "Done with page #{page}"
+      logger.info "Done with page #{page}"
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Running #{duration} seconds"
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Running #{duration} seconds"
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i 
     end
-    @@logger.info "All done"
+    logger.info "All done"
     my_conn.close
 
   end
@@ -189,20 +188,20 @@ module EllieHelper
 
 
   def get_charge_full(params)
-    @@logger.debug "EllieHelper#get_charge_full params: #{params}"
+    logger.debug "EllieHelper#get_charge_full params: #{params}"
     option_value = params['option_value']
     uri = params['connection']
     sleep_recharge = params['sleep_recharge']
-    @@logger.debug sleep_recharge
-    @@logger.debug uri
+    logger.debug sleep_recharge
+    logger.debug uri
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     header_info = params['header_info']
-    @@logger.debug header_info
+    logger.debug header_info
 
     if option_value == "full_pull"
       #delete all customer_tables
-      @@logger.warn "Deleting charge and associated tables"
+      logger.warn "Deleting charge and associated tables"
       charges_delete = "delete from charges"
       charges_reset = "ALTER SEQUENCE charges_id_seq RESTART WITH 1"
       my_conn.exec(charges_delete)
@@ -230,29 +229,29 @@ module EllieHelper
       charges_shipping_lines_delete = "delete from charges_shipping_lines"
       charges_shipping_lines_reset = "ALTER SEQUENCE charges_shipping_lines_id_seq RESTART WITH 1"
 
-      @@logger.info "Deleted all charge and associated table information and reset the id sequence"
+      logger.info "Deleted all charge and associated table information and reset the id sequence"
       my_conn.close
       num_charges = background_count_full_charges(header_info)
-      @@logger.info "We have #{num_charges} to download"
+      logger.info "We have #{num_charges} to download"
       #background_load_full_customers(sleep_recharge, num_customers, header_info, uri)
       background_load_full_charges(sleep_recharge, num_charges, header_info, uri)
 
 
     elsif option_value == "yesterday"
-      @@logger.info "downloading only yesterday's charges and associated tables"
+      logger.info "downloading only yesterday's charges and associated tables"
       my_today = Date.today
-      @@logger.debug "Today is #{my_today}"
+      logger.debug "Today is #{my_today}"
       my_yesterday = my_today - 1
       updated_at_min = my_yesterday.strftime("%Y-%m-%d")
-      @@logger.debug "Yesterday was #{my_yesterday}, header_info = #{header_info}"
+      logger.debug "Yesterday was #{my_yesterday}, header_info = #{header_info}"
       num_updated_charges = background_count_partial_charges(my_yesterday, header_info)
-      @@logger.info "We have #{num_updated_charges} customers who are new or have been updated since yesterday"
+      logger.info "We have #{num_updated_charges} customers who are new or have been updated since yesterday"
 
 
       background_load_partial_charges(sleep_recharge, num_updated_charges, header_info, uri, updated_at_min)
 
     else
-      @@logger.error "Sorry can't understand what the option_value #{option_value} means"
+      logger.error "Sorry can't understand what the option_value #{option_value} means"
 
     end
 
@@ -260,10 +259,10 @@ module EllieHelper
 
   def background_count_partial_charges(my_yesterday, my_header)
     updated_at_min = my_yesterday.strftime("%Y-%m-%d")
-    @@logger.info "Getting count of partial charges, since yesterday #{updated_at_min}"
+    logger.info "Getting count of partial charges, since yesterday #{updated_at_min}"
     charge_count = HTTParty.get("https://api.rechargeapps.com/charges/count?updated_at_min=#{updated_at_min}", :headers => my_header)
     my_count = charge_count.parsed_response
-    @@logger.debug my_count
+    logger.debug my_count
 
     num_charges = my_count['count']
     num_charges = num_charges.to_i
@@ -272,10 +271,10 @@ module EllieHelper
   end
 
   def background_count_full_charges(my_header)
-    @@logger.info "Getting charge count ... "
+    logger.info "Getting charge count ... "
     charge_count = HTTParty.get("https://api.rechargeapps.com/charges/count", :headers => my_header)
     my_count = charge_count.parsed_response
-    @@logger.debug my_count.inspect
+    logger.debug my_count.inspect
     num_charges = my_count['count']
     num_charges = num_charges.to_i
     return num_charges
@@ -283,11 +282,11 @@ module EllieHelper
   end
 
   def background_load_partial_charges(sleep_recharge, num_charges, header_info, uri, updated_at_min)
-    @@logger.info "starting PARTIAL Download!"
-    @@logger.debug num_charges
-    @@logger.debug updated_at_min
-    @@logger.debug header_info
-    @@logger.debug uri
+    logger.info "starting PARTIAL Download!"
+    logger.debug num_charges
+    logger.debug updated_at_min
+    logger.debug header_info
+    logger.debug uri
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
 
@@ -315,7 +314,7 @@ module EllieHelper
     1.upto(num_pages) do |page|
       charges = HTTParty.get("https://api.rechargeapps.com/charges?updated_at_min=#{updated_at_min}&limit=250&page=#{page}", :headers => header_info)
       my_charges = charges.parsed_response['charges']
-      @@logger.debug "#{'#' * 5} CHARGES #{'#' * 40}\n#{my_charges.pretty_inspect}"
+      logger.debug "#{'#' * 5} CHARGES #{'#' * 40}\n#{my_charges.pretty_inspect}"
       my_charges.each do |charge|
         address_id = charge['address_id']
         raw_billing_address = charge['billing_address']
@@ -380,7 +379,7 @@ module EllieHelper
           if myvalue == "" 
             myvalue = nil
           end
-          @@logger.info "charge #{charge_id}: #{myname} -> #{myvalue}"
+          logger.info "charge #{charge_id}: #{myname} -> #{myvalue}"
 
           #create hash for charge_variable_line_items, send to method to determine
           #if should update or insert
@@ -480,19 +479,19 @@ module EllieHelper
 
         #construct hash, send it to method to either insert or update
         my_main_charge_hash = {"address_id" => address_id, "billing_address" => billing_address, "client_details" => client_details, "created_at" => created_at, "customer_hash" => customer_hash, "customer_id" => customer_id, "first_name" => first_name, "charge_id" => charge_id, "last_name" => last_name,"line_items" => line_items, "note" => note, "note_attributes" => note_attributes, "processed_at" => processed_at, "scheduled_at" => scheduled_at, "shipments_count" => shipments_count, "shipping_address" => shipping_address, "shopify_order_id" => shopify_order_id, "status" => status, "sub_total" => sub_total, "sub_total_price" => sub_total_price, "tags" => tags,"tax_lines" => tax_lines, "total_discounts" => total_discounts, "total_line_items_price" => total_line_items_price, "total_tax" => total_tax, "total_weight" => total_weight, "total_price" => total_price, "updated_at" => updated_at,  "discount_codes" => discount_codes }
-        @@logger.info "Checking for insert or update main charge table"
+        logger.info "Checking for insert or update main charge table"
         insert_update_main_charge(uri, my_main_charge_hash)
 
       end
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Running #{duration} seconds"
-      @@logger.info "Done with page #{page}"
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Running #{duration} seconds"
+      logger.info "Done with page #{page}"
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i
     end
-    @@logger.info "All done with downloading today's charges"
-    @@logger.info "Ran #{(Time.now - start).ceil} seconds"
+    logger.info "All done with downloading today's charges"
+    logger.info "Ran #{(Time.now - start).ceil} seconds"
 
   end
 
@@ -519,7 +518,7 @@ module EllieHelper
     temp_select = "select * from charge_billing_address where charge_id = \'#{charge_id}\'"
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
-      @@logger.warn "Found existing charge_billing_address record. Updating existing record."
+      logger.warn "Found existing charge_billing_address record. Updating existing record."
       temp_result.each do |myrow|
         @logger.debug myrow.inspect
         charge_id = myrow['charge_id']
@@ -528,10 +527,10 @@ module EllieHelper
         @logger.debug indy_result.inspect
       end
     else
-      @@logger.warn "Charge_billing_address Record does not exist, inserting"
+      logger.warn "Charge_billing_address Record does not exist, inserting"
 
       my_conn.exec_prepared('statement1', [ charge_id, billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip ])
-      @@logger.info "inserted charge_client_details: #{charge_id} browser stuff"
+      logger.info "inserted charge_client_details: #{charge_id} browser stuff"
 
     end
     my_conn.close
@@ -552,19 +551,19 @@ module EllieHelper
     temp_select = "select * from charge_client_details where charge_id = \'#{charge_id}\'"
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
-      @@logger.warn "Found existing charge_client_details record"
+      logger.warn "Found existing charge_client_details record"
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
+        logger.debug myrow.inspect
         charge_id = myrow['charge_id']
-        @@logger.info "Charge ID #{charge_id}"
+        logger.info "Charge ID #{charge_id}"
         indy_result = my_conn.exec_prepared('statement2', [browser_ip, user_agent, charge_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
-      @@logger.warn "Charge_Client_Details Record does not exist, inserting"
+      logger.warn "Charge_Client_Details Record does not exist, inserting"
 
       my_conn.exec_prepared('statement1', [ charge_id, browser_ip, user_agent ])
-      @@logger.info "inserted charge_client_details: #{charge_id} browser stuff"
+      logger.info "inserted charge_client_details: #{charge_id} browser stuff"
 
     end
     my_conn.close
@@ -597,8 +596,8 @@ module EllieHelper
       my_insert = "insert into charge_variable_line_items (charge_id, name, value) values ($1, $2, $3)"
       my_conn.prepare('statement1', "#{my_insert}")
       my_insert_result = my_conn.exec_prepared('statement1', [ charge_id, name, value ])
-      @@logger.debug my_insert_result.inspect
-      @@logger.info "inserted charge_variable_line_items: #{charge_id} and good to go here"
+      logger.debug my_insert_result.inspect
+      logger.info "inserted charge_variable_line_items: #{charge_id} and good to go here"
     end
 
     my_conn.close
@@ -629,19 +628,19 @@ module EllieHelper
     temp_select = "select * from charge_fixed_line_items where charge_id = \'#{charge_id}\'"
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
-      @@logger.warn "Found existing charge_fixed_line_items record"
+      logger.warn "Found existing charge_fixed_line_items record"
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
+        logger.debug myrow.inspect
         charge_id = myrow['charge_id']
-        @@logger.info "Charge ID #{charge_id}"
+        logger.info "Charge ID #{charge_id}"
         indy_result = my_conn.exec_prepared('statement2', [grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor, charge_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
-      @@logger.warn "Charge Fixed Line Items Record does not exist, inserting"
+      logger.warn "Charge Fixed Line Items Record does not exist, inserting"
 
       my_conn.exec_prepared('statement1', [ charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor ])
-      @@logger.info "inserted charge_fixed_line_items: #{charge_id} oh yeah"
+      logger.info "inserted charge_fixed_line_items: #{charge_id} oh yeah"
     end
     my_conn.close
   end
@@ -669,19 +668,19 @@ module EllieHelper
     temp_select = "select * from charges_shipping_address where charge_id = \'#{charge_id}\'"
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
-      @@logger.warn "Found existing charge_shipping_address record"
+      logger.warn "Found existing charge_shipping_address record"
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
+        logger.debug myrow.inspect
         charge_id = myrow['charge_id']
-        @@logger.info "Charge ID #{charge_id}"
+        logger.info "Charge ID #{charge_id}"
         indy_result = my_conn.exec_prepared('statement2', [address1, address2, city, company, country, first_name, last_name, phone, province, zip, charge_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
-      @@logger.warn "Shipping address Record does not exist, inserting"
+      logger.warn "Shipping address Record does not exist, inserting"
 
       my_conn.exec_prepared('statement1', [ charge_id, address1, address2, city, company, country, first_name, last_name, phone, province, zip ])
-      @@logger.info "inserted charge_shipping_address: #{charge_id} !!!!"
+      logger.info "inserted charge_shipping_address: #{charge_id} !!!!"
     end
     my_conn.close
   end
@@ -707,20 +706,20 @@ module EllieHelper
     temp_select = "select * from charges_shipping_lines where charge_id = \'#{charge_id}\'"
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
-      @@logger.warn "Found existing charge_shipping_lines record"
+      logger.warn "Found existing charge_shipping_lines record"
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
+        logger.debug myrow.inspect
         charge_id = myrow['charge_id']
-        @@logger.debug "Charge ID #{charge_id}"
+        logger.debug "Charge ID #{charge_id}"
         indy_result = my_conn.exec_prepared('statement2', [code, price, my_source, title, tax_lines, carrier_identifier, request_fulfillment_service_id, charge_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
 
       end
     else
-      @@logger.warn "Record does not exist, inserting"
+      logger.warn "Record does not exist, inserting"
 
       my_conn.exec_prepared('statement1', [ charge_id, code, price, my_source, title, tax_lines, carrier_identifier, request_fulfillment_service_id ])
-      @@logger.info "inserted charge_shipping_lines: #{charge_id}"
+      logger.info "inserted charge_shipping_lines: #{charge_id}"
 
     end
     my_conn.close
@@ -773,23 +772,23 @@ module EllieHelper
       temp_result.each do |myrow|
         charge_id = myrow['charge_id']
         indy_result = my_conn.exec_prepared('statement2', [address_id, billing_address,client_details, customer_hash, customer_id, first_name, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at, discount_codes, charge_id])
-        @@logger.info "Updated charge id: #{charge_id}"
-        @@logger.debug indy_result.inspect
+        logger.info "Updated charge id: #{charge_id}"
+        logger.debug indy_result.inspect
       end
     else
       my_conn.exec_prepared('statement1', [ address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at,  discount_codes ])
-      @@logger.info "inserted charge #{charge_id}"
+      logger.info "inserted charge #{charge_id}"
     end
     my_conn.close
 
   end
 
   def background_load_full_charges(sleep_recharge, num_charges, header_info, uri)
-    @@logger.info "starting FULL download"
+    logger.info "starting FULL download"
 
 
-    @@logger.debug header_info
-    @@logger.debug uri
+    logger.debug header_info
+    logger.debug uri
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     my_insert = "insert into charges (address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at, discount_codes) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)"
@@ -820,7 +819,7 @@ module EllieHelper
       charges = HTTParty.get("https://api.rechargeapps.com/charges?limit=250&page=#{page}", :headers => header_info)
       my_charges = charges.parsed_response['charges']
       my_charges.each do |charge|
-        @@logger.debug charge.inspect
+        logger.debug charge.inspect
         address_id = charge['address_id']
         raw_billing_address = charge['billing_address']
         billing_address = charge['billing_address'].to_json
@@ -861,13 +860,13 @@ module EllieHelper
         line_items = charge['line_items'].to_json
         raw_line_items = charge['line_items'][0]
         raw_line_items['properties'].each do |myitem|
-          @@logger.debug myitem
+          logger.debug myitem
           myname = myitem['name']
           myvalue = myitem['value']
           if myvalue == "" 
             myvalue = nil
           end
-          @@logger.info "#{charge_id}: #{myname} -> #{myvalue}"
+          logger.info "#{charge_id}: #{myname} -> #{myvalue}"
           if !myvalue.nil?
             my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
           end
@@ -949,13 +948,13 @@ module EllieHelper
       end
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Running #{duration} seconds"
-      @@logger.info "Done with page #{page}"
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Running #{duration} seconds"
+      logger.info "Done with page #{page}"
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i
     end
-    @@logger.info "All done with charges"
-    @@logger.info "Ran #{(Time.now - start).ceil} seconds"
+    logger.info "All done with charges"
+    logger.info "Ran #{(Time.now - start).ceil} seconds"
   end
 
 
@@ -971,7 +970,7 @@ module EllieHelper
 
     if option_value == "full_pull"
       #delete all order tables
-      @@logger.warn "Deleting order table and associated tables"
+      logger.warn "Deleting order table and associated tables"
       orders_delete = "delete from orders"
       orders_reset = "ALTER SEQUENCE orders_id_seq RESTART WITH 1"
       my_conn.exec(orders_delete)
@@ -990,20 +989,20 @@ module EllieHelper
       my_conn.exec(order_line_items_fixed_reset)
       order_line_items_variable_delete = "delete from order_line_items_variable"
       order_line_items_variable_reset = "ALTER SEQUENCE order_line_items_variable_id_seq RESTART WITH 1"
-      @@logger.info "All done deleting and reseting order and associated tables"
+      logger.info "All done deleting and reseting order and associated tables"
       num_orders = background_count_orders(header_info)
-      @@logger.info "We have #{num_orders} full orders to download (from 4 months ago)"
+      logger.info "We have #{num_orders} full orders to download (from 4 months ago)"
       background_load_full_orders(sleep_recharge, num_orders, header_info, uri)
 
 
 
     elsif option_value == "yesterday"
-      @@logger.info "Doing pull of orders since yesterday"
+      logger.info "Doing pull of orders since yesterday"
       num_orders = background_count_orders_yesterday(header_info)
-      @@logger.info "We have #{num_orders} orders since yesterday to download"
+      logger.info "We have #{num_orders} orders since yesterday to download"
       background_load_partial_orders(sleep_recharge, num_orders, header_info, uri)
     else
-      @@logger.info "Can't understand option #{option_value} doing nothing"
+      logger.info "Can't understand option #{option_value} doing nothing"
     end
 
   end
@@ -1011,7 +1010,7 @@ module EllieHelper
   def background_count_orders_yesterday(header_info)
     yesterday = Date.today -1
     updated_at_min = yesterday.strftime("%Y-%m-%d")
-    @@logger.info "Getting count of partial orders, since yesterday #{updated_at_min}"
+    logger.info "Getting count of partial orders, since yesterday #{updated_at_min}"
     order_count = HTTParty.get("https://api.rechargeapps.com/orders/count?updated_at_min=\'#{updated_at_min}\'", :headers => header_info)
     my_count = order_count.parsed_response
     my_count = JSON.parse(my_count)
@@ -1050,7 +1049,7 @@ module EllieHelper
       orders = HTTParty.get("https://api.rechargeapps.com/orders?created_at_min=\'#{updated_at_min}\'&limit=250&page=#{page}", :headers => header_info)
       my_orders = orders.parsed_response['orders']
       my_orders.each do |order|
-        @@logger.debug orders.inspect
+        logger.debug orders.inspect
         order_id = order['id'] 
         transaction_id = order['id']
         charge_status = order['charge_status']
@@ -1166,15 +1165,15 @@ module EllieHelper
 
 
       end
-      @@logger.info "Done with page #{page}"  
+      logger.info "Done with page #{page}"  
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Been running #{duration} seconds" 
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Been running #{duration} seconds" 
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i             
 
     end
-    @@logger.info "All done with PARTIAL order download"
+    logger.info "All done with PARTIAL order download"
     conn.close
 
   end
@@ -1203,16 +1202,16 @@ module EllieHelper
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
+        logger.debug myrow.inspect
         #order_id = myrow['order_id']
-        @@logger.info "order_line_items_fixed #{order_id}"
+        logger.info "order_line_items_fixed #{order_id}"
 
         indy_result = my_conn.exec_prepared('statement2', [ shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title, order_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
       my_conn.exec_prepared('statement1', [ order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title ])
-      @@logger.info "inserted charge #{order_id}"
+      logger.info "inserted charge #{order_id}"
     end
     my_conn.close
 
@@ -1245,8 +1244,8 @@ module EllieHelper
       my_insert = "insert into order_line_items_variable (order_id, name, value) values ($1, $2, $3)"
       my_conn.prepare('statement1', "#{my_insert}")
       my_insert_result = my_conn.exec_prepared('statement1', [ order_id, name, value ])
-      @@logger.debug my_insert_result.inspect
-      @@logger.debug "inserted order_line_items_variable: #{order_id} and good to go here"
+      logger.debug my_insert_result.inspect
+      logger.debug "inserted order_line_items_variable: #{order_id} and good to go here"
     end
     my_conn.close  
   end
@@ -1278,16 +1277,16 @@ module EllieHelper
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
+        logger.debug myrow.inspect
         #order_id = myrow['order_id']
-        @@logger.info "Order shipping address #{order_id}"
+        logger.info "Order shipping address #{order_id}"
 
         indy_result = my_conn.exec_prepared('statement2', [ province, city, first_name, last_name, zip, country, address1, address2, company, phone, order_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
       my_conn.exec_prepared('statement1', [ order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone])
-      @@logger.info "inserted charge #{order_id}"
+      logger.info "inserted charge #{order_id}"
     end
     my_conn.close
 
@@ -1320,14 +1319,14 @@ module EllieHelper
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
-        @@logger.info "Order billing address #{order_id}"
+        logger.debug myrow.inspect
+        logger.info "Order billing address #{order_id}"
         indy_result = my_conn.exec_prepared('statement2', [ province, city, first_name, last_name, zip, country, address1, address2, company, phone, order_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
       my_conn.exec_prepared('statement1', [ order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone])
-      @@logger.info "inserted charge #{order_id}"
+      logger.info "inserted charge #{order_id}"
     end
     my_conn.close
 
@@ -1379,15 +1378,15 @@ module EllieHelper
     temp_result = my_conn.exec(temp_select)
     if !temp_result.num_tuples.zero?
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
-        @@logger.info "Order ID #{order_id}"
+        logger.debug myrow.inspect
+        logger.info "Order ID #{order_id}"
 
         indy_result = my_conn.exec_prepared('statement2', [ transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address, order_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
       my_conn.exec_prepared('statement1', [ order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address])
-      @@logger.info "inserted charge #{order_id}"
+      logger.info "inserted charge #{order_id}"
     end
     my_conn.close
 
@@ -1447,7 +1446,7 @@ module EllieHelper
       orders = HTTParty.get("https://api.rechargeapps.com/orders?created_at_min=\'#{created_at_min}\'&limit=250&page=#{page}", :headers => header_info)
       my_orders = orders.parsed_response['orders']
       my_orders.each do |order|
-        @@logger.debug order.inspect
+        logger.debug order.inspect
         order_id = order['id'] 
         transaction_id = order['id']
         charge_status = order['charge_status']
@@ -1531,15 +1530,15 @@ module EllieHelper
 
 
       end
-      @@logger.info "Done with page #{page}"  
+      logger.info "Done with page #{page}"  
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Been running #{duration} seconds" 
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Been running #{duration} seconds" 
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i             
 
     end
-    @@logger.info "All done with FULL order download"
+    logger.info "All done with FULL order download"
     conn.close
   end
 
@@ -1554,7 +1553,7 @@ module EllieHelper
 
     if option_value == "full_pull"
       #delete all order tables
-      @@logger.warn "Deleting subscription table and associated tables"
+      logger.warn "Deleting subscription table and associated tables"
       subs_delete = "delete from subscriptions"
       subs_reset = "ALTER SEQUENCE subscriptions_id_seq RESTART WITH 1"
       my_conn.exec(subs_delete)
@@ -1563,22 +1562,22 @@ module EllieHelper
       sub_line_items_reset = "ALTER SEQUENCE sub_line_items_id_seq RESTART WITH 1"
       my_conn.exec(sub_line_items_delete)
       my_conn.exec(sub_line_items_reset)
-      @@logger.info "All done deleting and resetting subscription and associated tables"
+      logger.info "All done deleting and resetting subscription and associated tables"
       num_subs = background_count_subscriptions(header_info)
-      @@logger.info "We have #{num_subs} full subscriptions"
+      logger.info "We have #{num_subs} full subscriptions"
       background_load_full_subs(sleep_recharge, num_subs, header_info, uri)
 
 
 
     elsif option_value == "yesterday"
-      @@logger.info "Doing pull of subscriptions since yesterday"
+      logger.info "Doing pull of subscriptions since yesterday"
       num_subs = background_count_subscriptions_partial(header_info)
-      @@logger.info "We have #{num_subs} subscriptions since yesterday to download"
+      logger.info "We have #{num_subs} subscriptions since yesterday to download"
       background_load_partial_subs(sleep_recharge, num_subs, header_info, uri)
 
 
     else
-      @@logger.fatal "Can't understand option #{option_value} doing nothing"
+      logger.fatal "Can't understand option #{option_value} doing nothing"
     end
   end  
 
@@ -1593,7 +1592,7 @@ module EllieHelper
   def background_count_subscriptions_partial(header_info)
     yesterday = Date.today - 1
     my_yesterday = yesterday.strftime("%Y-%m-%d")
-    @@logger.debug my_yesterday
+    logger.debug my_yesterday
 
     #?created_at_min='2015-01-01
     subscriptions = HTTParty.get("https://api.rechargeapps.com/subscriptions/count?updated_at_min=\'#{my_yesterday}\'", :headers => header_info)
@@ -1604,8 +1603,8 @@ module EllieHelper
   end
 
   def background_load_partial_subs(sleep_recharge, num_subs, header_info, uri)
-    @@logger.debug num_subs
-    @@logger.debug header_info
+    logger.debug num_subs
+    logger.debug header_info
     myuri = URI.parse(uri)
     conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
 
@@ -1627,7 +1626,7 @@ module EllieHelper
       local_sub = mysubs['subscriptions']
       local_sub.each do |sub|
         if !sub['properties'].nil? && sub['properties'] != []
-          @@logger.debug sub.inspect
+          logger.debug sub.inspect
           id = sub['id']
           address_id = sub['address_id']
           customer_id = sub['customer_id']
@@ -1666,12 +1665,12 @@ module EllieHelper
           special_handling_sub_line_items(uri, id)
 
 
-          @@logger.debug sub['properties'].inspect
+          logger.debug sub['properties'].inspect
           my_temp_array = sub['properties']
           my_temp_array.each do |temp|
             temp_name = temp['name']
             temp_value = temp['value']
-            @@logger.debug "#{temp_name}, #{temp_value}"
+            logger.debug "#{temp_name}, #{temp_value}"
             if !temp_value.nil? && !temp_name.nil?
               sub_line_items_hash = {"subscription_id" => id, "name" => temp_name, "value" => temp_value}
               insert_update_sub_line_items(uri, sub_line_items_hash)
@@ -1682,12 +1681,12 @@ module EllieHelper
       end 
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Been running #{duration} seconds" 
-      @@logger.info "Done with page #{page}"
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Been running #{duration} seconds" 
+      logger.info "Done with page #{page}"
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i
     end  
-    @@logger.info "Done with full download of partial subscriptions"      
+    logger.info "Done with full download of partial subscriptions"      
     conn.close 
 
   end
@@ -1715,7 +1714,7 @@ module EllieHelper
     my_conn.prepare('statement1', "#{my_insert}")
 
     my_conn.exec_prepared('statement1', [ subscription_id, myname, myvalue ])
-    @@logger.info "inserted subscription #{subscription_id}"
+    logger.info "inserted subscription #{subscription_id}"
 
     my_conn.close
 
@@ -1760,16 +1759,16 @@ module EllieHelper
 
     if !temp_result.num_tuples.zero?
       temp_result.each do |myrow|
-        @@logger.debug myrow.inspect
+        logger.debug myrow.inspect
         #order_id = myrow['order_id']
-        @@logger.info "updating subscription ID #{subscription_id}"
+        logger.info "updating subscription ID #{subscription_id}"
 
         indy_result = my_conn.exec_prepared('statement2', [ address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties, subscription_id])
-        @@logger.debug indy_result.inspect
+        logger.debug indy_result.inspect
       end
     else
       my_conn.exec_prepared('statement1', [ subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
-      @@logger.info "inserted subscription #{subscription_id}"
+      logger.info "inserted subscription #{subscription_id}"
     end
     my_conn.close
 
@@ -1797,7 +1796,7 @@ module EllieHelper
       local_sub = mysubs['subscriptions']
       local_sub.each do |sub|
         if !sub['properties'].nil? && sub['properties'] != []
-          @@logger.debug sub.inspect
+          logger.debug sub.inspect
           id = sub['id']
           address_id = sub['address_id']
           customer_id = sub['customer_id']
@@ -1829,24 +1828,24 @@ module EllieHelper
           conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
 
 
-          @@logger.debug sub['properties'].inspect
+          logger.debug sub['properties'].inspect
           my_temp_array = sub['properties']
           my_temp_array.each do |temp|
             temp_name = temp['name']
             temp_value = temp['value']
-            @@logger.debug "#{temp_name}, #{temp_value}"
+            logger.debug "#{temp_name}, #{temp_value}"
             conn.exec_prepared('statement2', [id, temp_name, temp_value])
           end
         end
       end 
       current = Time.now
       duration = (current - start).ceil
-      @@logger.info "Been running #{duration} seconds" 
-      @@logger.info "Done with page #{page}"
-      @@logger.info "Sleeping #{sleep_recharge}"
+      logger.info "Been running #{duration} seconds" 
+      logger.info "Done with page #{page}"
+      logger.info "Sleeping #{sleep_recharge}"
       sleep sleep_recharge.to_i
     end 
-    @@logger.info "All done with full download of subscriptions"       
+    logger.info "All done with full download of subscriptions"       
     conn.close 
 
   end

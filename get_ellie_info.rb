@@ -8,13 +8,15 @@ require 'sinatra/activerecord'
 require 'active_support/core_ext'
 require 'resque'
 require_relative 'worker_helper'
+require_relative 'logging'
 
-
+class Object
+  include Logging
+end
 
 module DetermineInfo
   class InfoGetter
-    @@logger = Logger.new
-
+    include Logging
 
     def initialize
       Dotenv.load
@@ -44,7 +46,7 @@ module DetermineInfo
       response = HTTParty.get("https://api.rechargeapps.com/subscriptions/count", :headers => @my_header)
       my_response = JSON.parse(response)
       my_count = my_response['count'].to_i
-      @@logger.info "We have #{my_count} subscriptions" 
+      logger.info "We have #{my_count} subscriptions" 
       my_temp_array = Array.new
 
       page_size = 250
@@ -54,7 +56,7 @@ module DetermineInfo
         local_sub = mysubs['subscriptions']
         local_sub.each do |sub|
           if !sub['properties'].nil? && sub['properties'] != []
-            @@logger.debug sub.inspect
+            logger.debug sub.inspect
             id = sub['id']
             address_id = sub['address_id']
             customer_id = sub['customer_id']
@@ -86,18 +88,18 @@ module DetermineInfo
             conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
 
 
-            @@logger.debug sub['properties'].inspect
+            logger.debug sub['properties'].inspect
             my_temp_array = sub['properties']
             my_temp_array.each do |temp|
               temp_name = temp['name']
               temp_value = temp['value']
-              @@logger.debug "#{temp_name}, #{temp_value}"
+              logger.debug "#{temp_name}, #{temp_value}"
               conn.exec_prepared('statement2', [id, temp_name, temp_value])
             end
           end
         end 
-        @@logger.info "Done with page #{page}"
-        @@logger.info "Sleeping #{@sleep_recharge}"
+        logger.info "Done with page #{page}"
+        logger.info "Sleeping #{@sleep_recharge}"
         sleep @sleep_recharge.to_i
       end        
       conn.close
@@ -118,14 +120,14 @@ module DetermineInfo
         temp_jacket_size = ""
         temp_property_array = Array.new
         sub_id = row['subscription_id']
-        @@logger.debug "InfoGetter#update_line_item_properties sub_id: #{sub_id}"
+        logger.debug "InfoGetter#update_line_item_properties sub_id: #{sub_id}"
         my_properties = "select name, value from sub_line_items where subscription_id = \'#{sub_id}\'"
         properties_result = conn.exec(my_properties)
         properties_result.each do |myrow|
           myname = myrow['name']
           myvalue = myrow['value']
 
-          @@logger.debug "#{myname}, #{myvalue}"
+          logger.debug "#{myname}, #{myvalue}"
           local_json_string = {"name" => myname, "value" => myvalue}
           temp_property_array << local_json_string
           if myname == "sports-jacket"
@@ -133,19 +135,19 @@ module DetermineInfo
           end
           if myname == "tops"
             temp_jacket_size = myvalue
-            @@logger.debug "found temp_jacket_size! #{temp_jacket_size}"
+            logger.debug "found temp_jacket_size! #{temp_jacket_size}"
           end
 
 
 
 
         end
-        @@logger.info "sportsjacket = #{sports_jacket_present}, size = #{temp_jacket_size}"
+        logger.info "sportsjacket = #{sports_jacket_present}, size = #{temp_jacket_size}"
         if !sports_jacket_present && temp_jacket_size != "" 
           temp_jacket_properties = {"name" => "sports-jacket", "value" => temp_jacket_size}
           temp_property_array << temp_jacket_properties
           json_data = {"properties" => temp_property_array}.to_json
-          @@logger.debug "InfoGetter#update_line_item_properties json_data: #{json_data.inspect}"
+          logger.debug "InfoGetter#update_line_item_properties json_data: #{json_data.inspect}"
           #insert temp_property_array into update table
           conn.exec_prepared('statement1', [sub_id, json_data])
         end
@@ -164,7 +166,7 @@ module DetermineInfo
       conn.exec(my_subscription_delete)
       conn.exec(my_sub_line_items_delete)
       conn.exec(my_update_line_items)
-      @@logger.info "all done deleting subscriptions, sub_line_items, and update_line_items tables"
+      logger.info "all done deleting subscriptions, sub_line_items, and update_line_items tables"
     end
 
     def testing_customer_yesterday_pull
@@ -174,7 +176,7 @@ module DetermineInfo
 
       customer_count = HTTParty.get("https://api.rechargeapps.com/customers/count?updated_at_min=2017-10-06", :headers => @my_header)
       my_count = customer_count.parsed_response
-      @@logger.debug my_count.inspect
+      logger.debug my_count.inspect
 
 
     end
@@ -190,12 +192,12 @@ module DetermineInfo
       result = conn.exec(my_query)
       result.each do |row|
         local_properties = row['properties']
-        @@logger.debug local_properties
+        logger.debug local_properties
 
         property_change_recharge = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{local_subscription_id}", :headers => @my_change_charge_header, :body => local_properties)
-        @@logger.debug property_change_recharge.inspect
+        logger.debug property_change_recharge.inspect
       end
-      @@logger.info "all done with test updade for justin subscription #{local_subscription_id}"
+      logger.info "all done with test updade for justin subscription #{local_subscription_id}"
     end
 
     def update_subscription_sports_jacket
@@ -207,24 +209,24 @@ module DetermineInfo
       result.each do |row|
         subscription_id = row['subscription_id']
         properties = row['properties']
-        @@logger.debug "#{subscription_id}, #{properties}"
+        logger.debug "#{subscription_id}, #{properties}"
         begin
           property_change_recharge = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{subscription_id}", :headers => @my_change_charge_header, :body => properties)  
 
         rescue => exception
-          @@logger.error "We can't process id #{subscription_id}"
+          logger.error "We can't process id #{subscription_id}"
         else
           #mark processed to true
           my_update = "update update_line_items set updated = \'t\'  where subscription_id = \'#{subscription_id}\'"
           conn.exec(my_update)    
         ensure
-          @@logger.info "Done with this record" 
+          logger.info "Done with this record" 
         end
         end_time = Time.now
         duration = (end_time - start_time).ceil
-        @@logger.info "running #{duration} seconds"
+        logger.info "running #{duration} seconds"
         if duration > 480
-          @@logger.error "We have been running #{duration} seconds, must exit"
+          logger.error "We have been running #{duration} seconds, must exit"
           exit
         end
       end
@@ -241,7 +243,7 @@ module DetermineInfo
         line_item.each do |myitem|
           temp_item = myitem.to_h
           if temp_item.has_value?("tops")
-            @@logger.debug temp_item
+            logger.debug temp_item
           end
 
         end
@@ -258,7 +260,7 @@ module DetermineInfo
       #GET /subscriptions/<subscription_id>
       response = HTTParty.get("https://api.rechargeapps.com/subscriptions/#{my_sub_id}", :headers => @my_header)
       subs = response.parsed_response
-      @@logger.debug subs.inspect
+      logger.debug subs.inspect
 
 
 
@@ -269,7 +271,7 @@ module DetermineInfo
       charge_count = HTTParty.get("https://api.rechargeapps.com/charges/count", :headers => @my_header)
       my_count = charge_count.parsed_response
       num_charges = my_count['count'].to_i
-      @@logger.info "Number of charges is #{num_charges}"
+      logger.info "Number of charges is #{num_charges}"
       return num_charges
     end
 
@@ -300,7 +302,7 @@ module DetermineInfo
 
 
       charge_number = count_charges
-      @@logger.debug "charge number: #{charge_number}"
+      logger.debug "charge number: #{charge_number}"
       start = Time.now
       page_size = 250
       num_pages = (charge_number/page_size.to_f).ceil
@@ -308,7 +310,7 @@ module DetermineInfo
         charges = HTTParty.get("https://api.rechargeapps.com/charges?limit=250&page=#{page}", :headers => @my_header)
         my_charges = charges.parsed_response['charges']
         my_charges.each do |charge|
-          @@logger.debug "#{'#' * 5} CHARGE #{'#' * 35}\n#{charge.inspect}"
+          logger.debug "#{'#' * 5} CHARGE #{'#' * 35}\n#{charge.inspect}"
           # insert into database tables
           address_id = charge['address_id']
           raw_billing_address = charge['billing_address']
@@ -349,13 +351,13 @@ module DetermineInfo
           line_items = charge['line_items'].to_json
           raw_line_items = charge['line_items'][0]
           raw_line_items['properties'].each do |myitem|
-            @@logger.debug "InfoGetter#insert_orders_into_db line item: #{myitem}"
+            logger.debug "InfoGetter#insert_orders_into_db line item: #{myitem}"
             myname = myitem['name']
             myvalue = myitem['value']
             if myvalue == "" 
               myvalue = nil
             end
-            @@logger.info "Inserting charge #{charge_id}: #{myname} -> #{myvalue}"
+            logger.info "Inserting charge #{charge_id}: #{myname} -> #{myvalue}"
             conn.exec_prepared('statement5', [charge_id, myname, myvalue])
           end
 
@@ -440,14 +442,14 @@ module DetermineInfo
 
         my_end = Time.now
         duration = (my_end - start).ceil
-        @@logger.info "running #{duration} seconds"
-        @@logger.info "done with page #{page}"
-        @@logger.info "Sleeping #{@sleep_recharge}"
+        logger.info "running #{duration} seconds"
+        logger.info "done with page #{page}"
+        logger.info "Sleeping #{@sleep_recharge}"
         sleep @sleep_recharge.to_i
 
       end
-      @@logger.info "All done with charges"
-      @@logger.info "Ran #{(Time.now - start).ceil} seconds"
+      logger.info "All done with charges"
+      logger.info "Ran #{(Time.now - start).ceil} seconds"
       conn.close
 
     end
@@ -522,7 +524,7 @@ module DetermineInfo
 
 
 
-      @@logger.info "all done deleting subscriptions, sub_line_items, and update_line_items tables"
+      logger.info "all done deleting subscriptions, sub_line_items, and update_line_items tables"
 
     end
 
@@ -569,7 +571,7 @@ module DetermineInfo
 
 
       number_orders = count_orders
-      @@logger.info "Total order count: #{number_orders}"
+      logger.info "Total order count: #{number_orders}"
       created_at_min = get_three_months_ago
       start = Time.now
       page_size = 250
@@ -578,9 +580,9 @@ module DetermineInfo
         orders = HTTParty.get("https://api.rechargeapps.com/orders?created_at_min=\'#{created_at_min}\'&limit=250&page=#{page}", :headers => @my_header)
         my_orders = orders.parsed_response['orders']
         my_orders.each do |order|
-          @@logger.debug "#{'#' * 5} ORDER #{'#' * 35}\n#{order.inspect}"
+          logger.debug "#{'#' * 5} ORDER #{'#' * 35}\n#{order.inspect}"
           order.each do |myord|
-            @@logger.debug "InfoGetter#insert_orders_into_db myord: #{myord.inspect}"
+            logger.debug "InfoGetter#insert_orders_into_db myord: #{myord.inspect}"
           end
           order_id = order['id'] 
           transaction_id = order['id']
@@ -665,11 +667,11 @@ module DetermineInfo
 
 
         end
-        @@logger.info "Done with page #{page}"  
+        logger.info "Done with page #{page}"  
         current = Time.now
         duration = (current - start).ceil
-        @@logger.info "Been running #{duration} seconds" 
-        @@logger.info "Sleeping #{@sleep_recharge}"
+        logger.info "Been running #{duration} seconds" 
+        logger.info "Sleeping #{@sleep_recharge}"
         sleep @sleep_recharge.to_i             
 
       end
@@ -690,7 +692,7 @@ module DetermineInfo
 
     def insert_customers_into_db
       num_customers = count_customers
-      @@logger.info "We have #{num_customers} customers"
+      logger.info "We have #{num_customers} customers"
 
       uri = URI.parse(ENV['DATABASE_URL'])
       conn = PG.connect(uri.hostname, uri.port, nil, nil, uri.path[1..-1], uri.user, uri.password)
@@ -705,7 +707,7 @@ module DetermineInfo
         customers = HTTParty.get("https://api.rechargeapps.com/customers?limit=250&page=#{page}", :headers => @my_header)
         my_customers = customers.parsed_response['customers']
         my_customers.each do |mycust|
-          @@logger.debug "#{'#' * 5} CUSTOMER #{'#' * 35}\n#{mycust.inspect}"
+          logger.debug "#{'#' * 5} CUSTOMER #{'#' * 35}\n#{mycust.inspect}"
           customer_id = mycust['id']
           hash = mycust['hash']
           shopify_customer_id = mycust['shopify_customer_id']
@@ -729,17 +731,17 @@ module DetermineInfo
 
 
         end
-        @@logger.info "Done with page #{page}"
+        logger.info "Done with page #{page}"
         current = Time.now
         duration = (current - start).ceil
-        @@logger.info "Running #{duration} seconds"
-        @@logger.info "Sleeping #{@sleep_recharge}"
+        logger.info "Running #{duration} seconds"
+        logger.info "Sleeping #{@sleep_recharge}"
         sleep @sleep_recharge.to_i 
 
 
 
       end
-      @@logger.info "All done inserting orders"
+      logger.info "All done inserting orders"
 
 
 
@@ -751,18 +753,18 @@ module DetermineInfo
     def handle_customers(option)
       params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
       if option == "full_pull"
-        @@logger.info "Doing full pull of customers"
+        logger.info "Doing full pull of customers"
         #delete tables and do full pull
-        @@logger.debug "handle_customers uri: #{@uri.inspect}"
+        logger.debug "handle_customers uri: #{@uri.inspect}"
 
         Resque.enqueue(PullCustomer, params)
 
       elsif option == "yesterday"
-        @@logger.info "Doing partial pull of customers since yesterday"
+        logger.info "Doing partial pull of customers since yesterday"
         #params = {"option_value" => option, "connection" => @uri}
         Resque.enqueue(PullCustomer, params)
       else
-        @@logger.error "sorry, cannot understand option #{option}, doing nothing."
+        logger.error "sorry, cannot understand option #{option}, doing nothing."
       end
 
     end
@@ -770,9 +772,10 @@ module DetermineInfo
 
     class PullCustomer
       extend EllieHelper
+      include Logging
       @queue = "pull_customer"
       def self.perform(params)
-        @@logger.debug "PullCustomer#perform params: #{params.inspect}"
+        logger.debug "PullCustomer#perform params: #{params.inspect}"
         get_customers_full(params)
 
       end
@@ -782,26 +785,28 @@ module DetermineInfo
     def handle_charges(option)
       params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
       if option == "full_pull"
-        @@logger.info "Doing full pull of charge table and associated charge tables"
+        logger.info "Doing full pull of charge table and associated charge tables"
         #delete tables and do full pull
 
         Resque.enqueue(PullCharge, params)
 
       elsif option == "yesterday"
-        @@logger.info "Doing partial pull of charge table and associated tables since yesterday"
+        logger.info "Doing partial pull of charge table and associated tables since yesterday"
         #params = {"option_value" => option, "connection" => @uri}
         Resque.enqueue(PullCharge, params)
       else
-        @@logger.error "sorry, cannot understand option #{option}, doing nothing."
+        logger.error "sorry, cannot understand option #{option}, doing nothing."
       end
     end
 
 
     class PullCharge
       extend EllieHelper
+      include Logging
+
       @queue = "pull_charge"
       def self.perform(params)
-        @@logger.debug "PullCharge#perform params: #{params.inspect}"
+        logger.debug "PullCharge#perform params: #{params.inspect}"
         get_charge_full(params)
       end
     end
@@ -809,24 +814,25 @@ module DetermineInfo
     def handle_orders(option)
       params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
       if option == "full_pull"
-        @@logger.info "Doing full pull of orders table and associated order tables"
+        logger.info "Doing full pull of orders table and associated order tables"
         #delete tables and do full pull
 
         Resque.enqueue(PullOrder, params)
 
       elsif option == "yesterday"
-        @@logger.info "Doing partial pull of orders table and associated tables since yesterday"
+        logger.info "Doing partial pull of orders table and associated tables since yesterday"
         Resque.enqueue(PullOrder, params)
       else
-        @@logger.info "sorry, cannot understand option #{option}, doing nothing."
+        logger.info "sorry, cannot understand option #{option}, doing nothing."
       end
     end
 
     class PullOrder
       extend EllieHelper
+      include Logging
       @queue = "pull_order"
       def self.perform(params)
-        @@logger.debug "PullOrder#perform params: #{params.inspect}"
+        logger.debug "PullOrder#perform params: #{params.inspect}"
         get_order_full(params)
       end
     end
@@ -835,30 +841,28 @@ module DetermineInfo
     def handle_subscriptions(option)
       params = {"option_value" => option, "connection" => @uri, "header_info" => @my_header, "sleep_recharge" => @sleep_recharge}
       if option == "full_pull"
-        @@logger.info "Doing full pull of subscription table and associated tables"
+        logger.info "Doing full pull of subscription table and associated tables"
         #delete tables and do full pull
 
         Resque.enqueue(PullSubscription, params)
 
       elsif option == "yesterday"
-        @@logger.info "Doing partial pull of subscription table and associated tables since yesterday"
+        logger.info "Doing partial pull of subscription table and associated tables since yesterday"
         Resque.enqueue(PullSubscription, params)
       else
-        @@logger.info "sorry, cannot understand option #{option}, doing nothing."
+        logger.info "sorry, cannot understand option #{option}, doing nothing."
       end
 
     end
 
     class PullSubscription
       extend EllieHelper
+      include Logging
       @queue = "pull_subscriptions"
       def self.perform(params)
-        @@logger.info "PullSubscription#perform params: #{params.inspect}"
+        logger.info "PullSubscription#perform params: #{params.inspect}"
         get_sub_full(params)
       end
-
     end
-
-
   end
 end
