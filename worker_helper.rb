@@ -345,6 +345,7 @@ module EllieHelper
                 #puts "-------------"
                 #puts charge.inspect
                 #puts "-------------"
+                begin
                 address_id = charge['address_id']
                 raw_billing_address = charge['billing_address']
                 billing_address = charge['billing_address'].to_json
@@ -383,17 +384,28 @@ module EllieHelper
                 charge_billing_address_hash = {"billing_address1" => billing_address1, "billing_address2" => billing_address2, "billing_address_city" => billing_address_city, "billing_address_company" => billing_address_company, "billing_address_country" => billing_address_country, "billing_address_first_name" => billing_address_first_name, "billing_address_last_name" => billing_address_last_name, "billing_address_phone" => billing_address_phone, "billing_address_province" => billing_address_province, "billing_address_zip" => billing_address_zip, "charge_id" => charge_id}
 
                 insert_update_charge_billing_address(uri, charge_billing_address_hash)
-
+                rescue 
+                    puts "We could not insert or update the charge billing address"
+                else
+                    puts "No errors inserting or updating the charge billing address"
+                end
 
                 #my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
                 #create charge_client_details_hash and send to method for insert/update
 
+                begin
                 charge_client_details_hash = {"charge_id" => charge_id, "browser_ip" => browser_ip, "user_agent" => user_agent}
 
                 if !browser_ip.nil?
                     insert_update_charge_client_details(uri, charge_client_details_hash)
                 end
+                rescue
+                    puts "We could not update or insert the browser ip details"
+                else
+                    puts "no errors updating or inserting the browser ip details"
+                end
 
+                begin
                 #before updating/inserting variable line items delete everything in that table
                 #with the id, and just insert only, its special case, can have many or one or
                 #none variable line items -- name/value pair.
@@ -419,6 +431,13 @@ module EllieHelper
 
 
                 end
+                rescue
+                    puts "We could not handle the variable line items"
+                else
+                    puts "No error with the variable line items"
+                end
+
+                begin
                 
                 grams = raw_line_items['grams']
                 price = raw_line_items['price']
@@ -447,8 +466,13 @@ module EllieHelper
                 charge_fixed_line_items_hash = {"charge_id" => charge_id, "grams" => grams, "price" => price, "quantity" => quantity, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "subscription_id" => subscription_id, "title" => title, "variant_title" => variant_title, "vendor" => vendor}
 
                 insert_update_charge_fixed_line_items(uri, charge_fixed_line_items_hash)
+                rescue
+                    puts "We had problems inserting or updating fixed line items"
+                else
+                    puts "no errors with updating/inserting fixed line items"
+                end
 
-
+                begin
                 note = charge['note']
                 note_attributes = charge['note_attributes'].to_json
                 processed_at = charge['processed_at']
@@ -471,8 +495,13 @@ module EllieHelper
                 #construct hash and send to method to determine if insert or update
                 charge_shipping_address_hash = {"charge_id" => charge_id, "address1" => sa_address1, "address2" => sa_address2, "city" => sa_city, "company" => sa_company, "country" => sa_country, "first_name" => sa_first_name, "last_name" => sa_last_name, "phone" => sa_phone, "province" => sa_province, "zip" => sa_zip}
                 insert_update_shipping_address(uri, charge_shipping_address_hash)
+                rescue
+                    puts "Problems inserting/updating shipping address"
+                else
+                    puts "No problems inserting/updating shipping address"
+                end
 
-
+                begin
                 shipping_lines = charge['shipping_lines'][0]
                 if !shipping_lines.nil?
                     sl_code = shipping_lines['code']
@@ -492,8 +521,13 @@ module EllieHelper
 
 
                 end
+                rescue
+                    puts "Problems inserting or updating shipping lines"
+                else
+                    puts "No errors inserting/updating shipping lines"
+                end
 
-
+                begin
                 shopify_order_id = charge['shopify_order_id']
                 status = charge['status']
                 sub_total = charge['sub_total']
@@ -511,6 +545,11 @@ module EllieHelper
                 my_main_charge_hash = {"address_id" => address_id, "billing_address" => billing_address, "client_details" => client_details, "created_at" => created_at, "customer_hash" => customer_hash, "customer_id" => customer_id, "first_name" => first_name, "charge_id" => charge_id, "last_name" => last_name,"line_items" => line_items, "note" => note, "note_attributes" => note_attributes, "processed_at" => processed_at, "scheduled_at" => scheduled_at, "shipments_count" => shipments_count, "shipping_address" => shipping_address, "shopify_order_id" => shopify_order_id, "status" => status, "sub_total" => sub_total, "sub_total_price" => sub_total_price, "tags" => tags,"tax_lines" => tax_lines, "total_discounts" => total_discounts, "total_line_items_price" => total_line_items_price, "total_tax" => total_tax, "total_weight" => total_weight, "total_price" => total_price, "updated_at" => updated_at,  "discount_codes" => discount_codes }
                 puts "Checking for insert or update main charge table"
                 insert_update_main_charge(uri, my_main_charge_hash)
+                rescue
+                    puts "problems inserting or updating main charge record"
+                else
+                    puts "no problems inserting or updating the main charge record"
+                end
 
                 end
             current = Time.now
