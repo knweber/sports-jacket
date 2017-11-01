@@ -1,9 +1,6 @@
 require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
-
-
-
 require_relative 'get_ellie_info'
 
 desc "Get all subscriptions"
