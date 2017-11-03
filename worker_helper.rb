@@ -1849,5 +1849,4 @@ module EllieHelper
     conn.close 
 
   end
-
 end
