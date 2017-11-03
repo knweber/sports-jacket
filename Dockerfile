@@ -2,7 +2,7 @@ FROM ruby:2.4.0
 
 MAINTAINER FamBrands
 
-EXPOSE 5678
+EXPOSE 5678 9292
 
 ENV RACK_ENV=production
 ENV APP_NAME=production_pull
