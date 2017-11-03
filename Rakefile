@@ -1,3 +1,6 @@
+require 'redis'
+require 'resque'
+Resque.redis = Redis.new(url: ENV['REDIS_URL'])
 require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
