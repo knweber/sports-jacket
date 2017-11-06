@@ -111,9 +111,8 @@ class EllieListener < Sinatra::Base
       return [400, JSON.generate({error: 'shopify_id required'})]
     end
     data = Customer.joins(:subscriptions)
-      .where(shopify_customer_id: shopify_id)
-      .collect(&:subscriptions)
-      .flatten
+      .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
+      .subscriptions
       .map{|sub| [sub, sub.orders]}
     output = data.map{|i| transform_subscriptions(*i)}
     [200, @default_headers, JSON.generate(output)]
@@ -126,9 +125,8 @@ class EllieListener < Sinatra::Base
       return [400, JSON.generate({error: 'shopify_id required'})]
     end
     data = Customer.joins(:subscriptions)
-      .where(shopify_customer_id: shopify_id)
-      .collect(&:subscriptions)
-      .flatten
+      .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
+      .subscriptions
       .map{|sub| [sub, sub.orders]}
     output = data.map{|i| transform_subscriptions(*i)}
     [200, @default_headers, JSON.generate(output)]
@@ -149,7 +147,7 @@ class EllieListener < Sinatra::Base
         .map{|p| [p['name'], p['value']]}
         .to_h,
       prepaid: sub.prepaid?,
-      prepaid_shipping_at: sub.prepaid? ? sub.shipping_at.strftime('%Y-%m-%d') : nil,
+      prepaid_shipping_at: sub.prepaid? && !sub.shipping_at.nil? ? sub.shipping_at.strftime('%Y-%m-%d') : nil,
     }
   end
 
