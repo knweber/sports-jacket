@@ -110,7 +110,6 @@ class EllieListener < Sinatra::Base
     if shopify_id.nil?
       return [400, JSON.generate({error: 'shopify_id required'})]
     end
-    #subscriptions = Recharge.subscriptions_by_shopify_id shopify_id
     data = Customer.joins(:subscriptions)
       .where(shopify_customer_id: shopify_id)
       .collect(&:subscriptions)
@@ -120,19 +119,22 @@ class EllieListener < Sinatra::Base
     [200, @default_headers, JSON.generate(output)]
   end
 
-  #post '/subscriptions' do
-    #json = JSON.parse request.body.read
-    #shopify_id = json['shopify_id']
-    #unless shopify_id.instance_of? Integer
-      #return [400, JSON.generate({error: 'shopify_id required'})]
-    #end
-    #subscriptions = Recharge.subscriptions_by_shopify_id shopify_id
-    #collection = subscriptions.map{|s| [s, s.orders]}
-    #output = subscriptions.map{|i| transform_subscriptions(*i)}
-    #[200, JSON.generate(output)]
-  #end
+  post '/subscriptions' do
+    json = JSON.parse request.body.read
+    shopify_id = json['shopify_id']
+    if shopify_id.nil?
+      return [400, JSON.generate({error: 'shopify_id required'})]
+    end
+    data = Customer.joins(:subscriptions)
+      .where(shopify_customer_id: shopify_id)
+      .collect(&:subscriptions)
+      .flatten
+      .map{|sub| [sub, sub.orders]}
+    output = data.map{|i| transform_subscriptions(*i)}
+    [200, @default_headers, JSON.generate(output)]
+  end
 
-  #private
+  private
 
   def transform_subscriptions(sub, orders)
     logger.debug "subscription: #{sub.inspect}"
