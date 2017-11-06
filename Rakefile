@@ -4,7 +4,7 @@ Resque.redis = Redis.new(url: ENV['REDIS_URL'])
 require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
-require_relative 'get_ellie_info'
+require_relative 'src/get_ellie_info'
 
 
 

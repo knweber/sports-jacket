@@ -14,3 +14,4 @@ QUEUE=pull_customer rake resque:work &
 
 resque-web -LF -p 5678 --redis $REDIS_URL &
 rackup
+#bash

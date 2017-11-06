@@ -11,17 +11,15 @@ ENV RECHARGE_ACCESS_TOKEN=""
 ENV RECHARGE_SLEEP_TIME=1
 ENV REDIS_URL=""
 
+RUN mkdir -p /app/tmp/pids /app/resque_pid
 VOLUME /app/logs
-
-ADD . /app
-#ADD https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py /tmp
-#ADD https://github.com/postmodern/ruby-install/archive/master.tar.gz /tmp/ruby-install.tar.gz
 WORKDIR /app
+
 # update bundler to prevent errors concerning the lockfile
 RUN gem install bundler
-# needed to install awslogs
-#RUN apt-get update && apt-get install -y python3
+ADD Gemfile Gemfile.lock /app/
 RUN bundle install --deployment
-#RUN python3 /tmp/awslogs-agent-setup.py -n -r $AWS_REGION -c /app/config/awslogs.conf
+ADD Rakefile entrypoint.sh config config.ru /app/
+ADD src /app/src
 
 ENTRYPOINT /app/entrypoint.sh

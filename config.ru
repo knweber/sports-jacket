@@ -1,2 +1,2 @@
-require './ellie_listener'
+require_relative 'src/ellie_listener.rb'
 run EllieListener

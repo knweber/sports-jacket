@@ -1,5 +1,3 @@
-#ellie_listener.rb
-#recharge_listener.rb
 require 'dotenv'
 Dotenv.load
 require 'sinatra/base'
@@ -10,17 +8,19 @@ require 'shopify_api'
 require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
-require './models/model'
+require_relative 'models/model'
+require_relative 'recharge_api'
+require_relative 'logging'
 
 class EllieListener < Sinatra::Base
   register Sinatra::ActiveRecordExtension
+  include Logging
 
   configure do
 
     enable :logging
     set :server, :puma
     #set :protection, :except => [:json_csrf]
-
 
     mime_type :application_javascript, 'application/javascript'
     mime_type :application_json, 'application/json'
@@ -112,5 +112,51 @@ class EllieListener < Sinatra::Base
     "Hi there endpoint is active"
   end
 
+  get '/subscriptions' do 
+    shopify_id = params['shopify_id']
+    logger.debug params.inspect
+    if shopify_id.nil?
+      return [400, JSON.generate({error: 'shopify_id required'})]
+    end
+    #subscriptions = Recharge.subscriptions_by_shopify_id shopify_id
+    data = Customer.joins(:subscriptions)
+      .where(shopify_customer_id: shopify_id)
+      .collect(&:subscriptions)
+      .flatten
+      .map{|sub| [sub, sub.orders]}
+    output = data.map{|i| transform_subscriptions(*i)}
+    [200, JSON.generate(output)]
+  end
+
+  #post '/subscriptions' do
+    #json = JSON.parse request.body.read
+    #shopify_id = json['shopify_id']
+    #unless shopify_id.instance_of? Integer
+      #return [400, JSON.generate({error: 'shopify_id required'})]
+    #end
+    #subscriptions = Recharge.subscriptions_by_shopify_id shopify_id
+    #collection = subscriptions.map{|s| [s, s.orders]}
+    #output = subscriptions.map{|i| transform_subscriptions(*i)}
+    #[200, JSON.generate(output)]
+  #end
+
+  #private
+
+  def transform_subscriptions(sub, orders)
+    logger.debug "subscription: #{sub.inspect}"
+    { 
+      shopify_product_id: sub.shopify_product_id.to_i,
+      subscription_id: sub.subscription_id,
+      product_title: sub.product_title,
+      next_charge: sub.next_charge_scheduled_at,
+      charge_date: sub['next_charge_scheduled_at'].strftime('%Y-%m-%d'),
+      sizes: sub.line_items
+        .select {|l| l.size_property?}
+        .map{|p| [p['name'], p['value']]}
+        .to_h,
+      prepaid: sub.prepaid?,
+      prepaid_shipping_at: sub.prepaid? ? sub.shipping_at : nil,
+    }
+  end
 
 end
