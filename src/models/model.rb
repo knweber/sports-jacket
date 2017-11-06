@@ -3,18 +3,28 @@ require 'active_record/base'
 require 'safe_attributes'
 
 class Subscription < ActiveRecord::Base
-  has_many :orders, primary_key: :subscription_id, foreign_key: :subscription_id
   belongs_to :customer, primary_key: :customer_id
   has_many :line_items, {
     class_name: "SubLineItem",
     primary_key: :subscription_id,
   }
+  has_many :order_line_items, {
+    primary_key: :subscription_id,
+    class_name: 'OrderLineItemsFixed'
+  }
+  has_many :orders, {
+    primary_key: :subscription_id,
+    #foreign_key: :subscription_id,
+    through: :order_line_items,
+  }
+
   PREPAID_PRODUCTS = [
     {id: "9421067602", title: "3 MONTHS"},
     {id: "8204584905", title: "6 Month Box"},
     {id: "9109818066", title: "VIP 3 Month Box"},
     {id: "9175678162", title: "VIP 3 Monthly Box"},
   ]
+
   def prepaid?
     PREPAID_PRODUCTS.map{|p| p[:id]}.include? shopify_product_id
   end
