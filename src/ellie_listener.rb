@@ -27,19 +27,11 @@ class EllieListener < Sinatra::Base
   end
 
   def initialize
-    @recharge_access_token = ENV['RECHARGE_STAGING_ACCESS_TOKEN']
-    @get_header =  {
-      "X-Recharge-Access-Token" => "#{@recharge_access_token}"
-    }
-    @change_header = {
-      "X-Recharge-Access-Token" => "#{@recharge_access_token}",
-      "Accept" => "application/json",
-      "Content-Type" =>"application/json"
-    }
     @tokens = {}
     @key = ENV['SHOPIFY_API_KEY']
     @secret = ENV['SHOPIFY_SHARED_SECRET'] 
     @app_url = "ec2-174-129-48-228.compute-1.amazonaws.com"
+    @default_headers = {"Content-Type" => "application/json"}
     super
   end
 
@@ -125,7 +117,7 @@ class EllieListener < Sinatra::Base
       .flatten
       .map{|sub| [sub, sub.orders]}
     output = data.map{|i| transform_subscriptions(*i)}
-    [200, JSON.generate(output)]
+    [200, @default_headers, JSON.generate(output)]
   end
 
   #post '/subscriptions' do
@@ -146,9 +138,9 @@ class EllieListener < Sinatra::Base
     logger.debug "subscription: #{sub.inspect}"
     { 
       shopify_product_id: sub.shopify_product_id.to_i,
-      subscription_id: sub.subscription_id,
+      subscription_id: sub.subscription_id.to_i,
       product_title: sub.product_title,
-      next_charge: sub.next_charge_scheduled_at,
+      next_charge: sub.next_charge_scheduled_at.strftime('%Y-%m-%d'),
       charge_date: sub['next_charge_scheduled_at'].strftime('%Y-%m-%d'),
       sizes: sub.line_items
         .select {|l| l.size_property?}
