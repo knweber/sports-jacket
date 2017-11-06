@@ -140,14 +140,14 @@ class EllieListener < Sinatra::Base
       shopify_product_id: sub.shopify_product_id.to_i,
       subscription_id: sub.subscription_id.to_i,
       product_title: sub.product_title,
-      next_charge: sub.next_charge_scheduled_at.nil? ? nil : sub.next_charge_scheduled_at.strftime('%Y-%m-%d'),
-      charge_date: sub.next_charge_scheduled_at.nil? ? nil : sub.next_charge_scheduled_at.strftime('%Y-%m-%d'),
+      next_charge: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
+      charge_date: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
       sizes: sub.line_items
         .select {|l| l.size_property?}
         .map{|p| [p['name'], p['value']]}
         .to_h,
       prepaid: sub.prepaid?,
-      prepaid_shipping_at: sub.prepaid? && !sub.shipping_at.nil? ? sub.shipping_at.strftime('%Y-%m-%d') : nil,
+      prepaid_shipping_at: sub.shipping_at.try{|time| time.strftime('%Y-%m-%d')},
     }
   end
 

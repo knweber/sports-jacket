@@ -34,7 +34,7 @@ class Subscription < ActiveRecord::Base
       .where('scheduled_at > ?', Date.today)
       .order(:scheduled_at)
       .first
-    return next_order.scheduled_at unless next_order.nil?
+    next_order.try(&:scheduled_at)
   end
 end
 
