@@ -25,8 +25,19 @@ class Subscription < ActiveRecord::Base
     {id: "9175678162", title: "VIP 3 Monthly Box"},
   ]
 
+  CURRENT_PRODUCTS = [
+    {id: "8204555081", title: "Monthly Box"},
+    {id: "9175678162", title: "VIP 3 Monthly Box"},
+    {id: "10870327954", title: "Alternate Monthly Box/ Fit to Be Seen"},
+    {id: "23729012754", title: "NEW 3 MONTHS"},
+    {id: "9109818066", title: "VIP 3 Month Box"},
+    {id: "10016265938", title: "Ellie 3- Pack: ",},
+    {id: "10870682450", title: "Fit to Be Seen Ellie 3- Pack"},
+    {id: "8204555081", title: "Monthly Box  Auto renew"},
+  ]
+
   def prepaid?
-    PREPAID_PRODUCTS.map{|p| p[:id]}.include? shopify_product_id
+    PREPAID_PRODUCTS.pluck(:id).include? shopify_product_id
   end
 
   def shipping_at
@@ -41,8 +52,28 @@ end
 class SubLineItem < ActiveRecord::Base
   belongs_to :subscription, primary_key: :subscription_id
   SIZE_PROPERTIES = ['leggings', 'tops', 'sports-jacket', 'sports-bra']
+  SIZE_VALUES = ['XS', 'S', 'M', 'L', 'XL']
+
+  validate do |sub_item|
+    if SIZE_PROPERTIES.include?(sub_item.name) && !SIZE_VALUES.include?(sub_item.value)
+      sub_items.errors[:value] << "Invalid size"
+    end
+  end
+
+  before_save :sync_subscription
+
   def size_property?
     SIZE_PROPERTIES.include? name
+  end
+
+  private
+
+  def sync_subscription
+    sub = subscription
+    sub.raw_line_item_properties.map! do |orig|
+      orig[:name] == name ? {name: name, value: value} : orig
+    end
+    sub.save!
   end
 end
 
