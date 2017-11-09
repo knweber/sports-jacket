@@ -8,6 +8,7 @@ require 'shopify_api'
 require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
+#Dir[File.dirname(__FILE__) + '/models/*.rb'].each {|file| require file }
 require_relative 'models/model'
 require_relative 'recharge_api'
 require_relative 'logging'
@@ -210,10 +211,12 @@ class EllieListener < Sinatra::Base
       return [400, @default_headers, {error: 'invalid payload data'}.to_json]
     end
     begin
-      res = RechargeAPI.put("/subscriptions/#{subscription_id}", {body: body.to_json})
+      body_json = body.to_json
+      logger.debug "sending to recharge: #{body_json}"
+      res = RechargeAPI.put("/subscriptions/#{subscription_id}", {body: body_json})
       logger.debug('request options: ' + res.request.options.inspect)
       logger.debug('recharge response: ' + res.parsed_response.inspect)
-      logger.debug 'raw response: ' + res.body.read
+      logger.debug 'raw response: ' + res.body
       raise 'Error processing subscription change. Please try again later.' unless res.success?
       body.each{|k,v| subscription[k] ||= v }
       subscription.save
