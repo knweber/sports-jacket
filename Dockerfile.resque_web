@@ -1,0 +1,13 @@
+FROM ruby:2.4.0
+
+MAINTAINER FamBrands
+
+EXPOSE 5678
+
+ENV RACK_ENV=production
+ENV REDIS_URL=redis://172.17.0.1:5432/0
+
+# update bundler to prevent errors concerning the lockfile
+RUN gem install resque
+
+ENTRYPOINT bundle exec resque-web -r $REDIS_URL -FL

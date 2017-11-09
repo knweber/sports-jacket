@@ -6,17 +6,20 @@ require 'resque'
 # #recharge_endpoint method that transforms the data into a hash that matches
 # the recharge api.
 module Async
-  def included(base)
+  def self.included(base)
     base.extend(ClassMethods)
   end
 
-
   module ClassMethods
+    def queue
+      :default
+    end
+
     def perform(method, obj, options)
       send(method, obj)
     end
 
-    def async(method, obj, options)
+    def async(method, obj, options = {})
       Resque.enqueue(self, method, obj, options)
     end
 

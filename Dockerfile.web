@@ -19,7 +19,7 @@ WORKDIR /app
 RUN gem install bundler
 ADD Gemfile Gemfile.lock /app/
 RUN bundle install --deployment
-ADD Rakefile entrypoint.sh config config.ru /app/
+ADD Rakefile config config.ru /app/
 ADD src /app/src
 
-ENTRYPOINT /app/entrypoint.sh
+ENTRYPOINT rackup

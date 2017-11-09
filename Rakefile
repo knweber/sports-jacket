@@ -7,6 +7,7 @@ require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
 require_relative 'src/get_ellie_info'
+require_relative 'src/models/model'
 
 
 
