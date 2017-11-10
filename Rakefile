@@ -6,10 +6,16 @@ Resque.redis = Redis.new(url: ENV['REDIS_URL'])
 require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
+
 require_relative 'src/get_ellie_info'
 require_relative 'src/models/model'
 
-
+Resque.logger =
+  if ENV['production']
+    Logger.new STDOUT, level: Logger::INFO
+  else
+    Logger.new STDOUT, level: Logger::DEBUG
+  end
 
 desc "do full or partial pull of customers and add to DB"
 task :customer_pull, [:args] do |t, args|

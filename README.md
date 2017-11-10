@@ -23,3 +23,15 @@ For development:
 ## Queueing jobs from the container
 
 `docker exec <container> rake -f /app/Rakefile <job>`
+
+## Web API Endpoints
+
+### `GET /subscriptions`
+
+### `PUT /subscriptions`
+
+### `GET /subscriptions/<subscription_id>`
+
+### `GET /subscriptions/:subscription_id/sizes`
+
+### `PUT /subscriptions/:subscription_id/sizes`

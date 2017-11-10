@@ -40,128 +40,135 @@ class Subscription < ActiveRecord::Base
 
   # Defines the relationship between the local database table and the remote
   # Recharge data format
-  API_MAP = [
-    {
-      remote_key: 'id',
-      local_key: 'subscription_id',
-      inbound: ->(int) { int.to_s },
-      outbound: ->(str) { str.to_i },
-    },
-    {
-      remote_key: 'address_id',
-      local_key: 'address_id',
-      inbound: ->(int) { int.to_s },
-      outbound: ->(str) { str.to_i },
-    },
-    {
-      remote_key: 'customer_id',
-      local_key: 'customer_id',
-      inbound: ->(int) { int.to_s },
-      outbound: ->(str) { str.to_i },
-    },
-    {
-      remote_key: 'created_at',
-      local_key: 'created_at',
-      inbound: ->(str) { Time.parse str },
-      outbound: ->(time) { time.try(:strftime, '%FT%T') },
-    },
-    {
-      remote_key: 'updated_at',
-      local_key: 'updated_at',
-      inbound: ->(str) { Time.parse str },
-      outbound: ->(time) { time.try(:strftime, '%FT%T') },
-    },
-    {
-      remote_key: 'next_charge_scheduled_at',
-      local_key: 'next_charge_scheduled_at',
-      inbound: ->(str) { Time.parse str },
-      outbound: ->(time) { time.try(:strftime, '%FT%T') },
-    },
-    {
-      remote_key: 'cancelled_at',
-      local_key: 'cancelled_at',
-      inbound: ->(str) { Time.parse str },
-      outbound: ->(time) { time.try(:strftime, '%FT%T') },
-    },
-    {
-      remote_key: 'product_title',
-      local_key: 'product_title',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'price',
-      local_key: 'price',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'quantity',
-      local_key: 'quantity',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'status',
-      local_key: 'status',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'shopify_product_id',
-      local_key: 'shopify_product_id',
-      inbound: ->(int){ int.to_s },
-      outbound: ->(str){ str.to_i },
-    },
-    {
-      remote_key: 'shopify_variant_id',
-      local_key: 'shopify_variant_id',
-      inbound: ->(int){ int.to_s },
-      outbound: ->(str){ str.to_i },
-    },
-    {
-      remote_key: 'sku',
-      local_key: 'sku',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'order_interval_unit',
-      local_key: 'order_interval_unit',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'order_interval_frequency',
-      local_key: 'order_interval_frequency',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'order_day_of_month',
-      local_key: 'order_day_of_month',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'order_day_of_week',
-      local_key: 'order_day_of_week',
-      inbound: nil,
-      outbound: nil,
-    },
-    {
-      remote_key: 'properties',
-      local_key: 'raw_line_item_properties',
-      inbound: nil,
-      outbound: nil,
-    },
-  ].freeze
+  def self.api_map
+    # helper functions
+    identity = ->(x) { x }
+    to_s = ->(x) { x.to_s }
+    to_i = ->(x) { x.to_i }
+    recharge_time = ->(time) { time.try(:strftime, '%FT%T') }
+    to_time = ->(str) { str.nil? ? nil : Time.parse(str) }
+    [
+      {
+        remote_key: 'id',
+        local_key: 'subscription_id',
+        inbound: to_s,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'address_id',
+        local_key: 'address_id',
+        inbound: to_s,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'customer_id',
+        local_key: 'customer_id',
+        inbound: to_s,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'created_at',
+        local_key: 'created_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'updated_at',
+        local_key: 'updated_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'next_charge_scheduled_at',
+        local_key: 'next_charge_scheduled_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'cancelled_at',
+        local_key: 'cancelled_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'product_title',
+        local_key: 'product_title',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'price',
+        local_key: 'price',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'quantity',
+        local_key: 'quantity',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'status',
+        local_key: 'status',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'shopify_product_id',
+        local_key: 'shopify_product_id',
+        inbound: ->(int){ int.to_s },
+        outbound: ->(str){ str.to_i },
+      },
+      {
+        remote_key: 'shopify_variant_id',
+        local_key: 'shopify_variant_id',
+        inbound: ->(int){ int.to_s },
+        outbound: ->(str){ str.to_i },
+      },
+      {
+        remote_key: 'sku',
+        local_key: 'sku',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'order_interval_unit',
+        local_key: 'order_interval_unit',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'order_interval_frequency',
+        local_key: 'order_interval_frequency',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'order_day_of_month',
+        local_key: 'order_day_of_month',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'order_day_of_week',
+        local_key: 'order_day_of_week',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'properties',
+        local_key: 'raw_line_item_properties',
+        inbound: lambda do |p|
+          logger.debug "parsing properties: #{p}"
+          p || []
+        end,
+        outbound: identity,
+      },
+    ].freeze
+  end
 
   attr_accessor :sync_recharge
-
-  def self.from_recharge(*args)
-    Subscription.new(*args)
-  end
 
   def initialize(*_args)
     @sync_recharge = false
@@ -178,43 +185,6 @@ class Subscription < ActiveRecord::Base
                        .first
     next_order.try(&:scheduled_at)
   end
-
-  def from_recharge(obj)
-  end
-
-  def as_recharge
-    remapped = API_MAP.map do |m|
-      local = self[m[:local_key]]
-      transform = m[:outbound] || ->(i){ i }
-      [m[:remote_key], transform.call(local)]
-    end
-    remapped.to_h
-  end
-
-  #def as_recharge
-    #{
-      #id: subscription_id.to_i,
-      #address_id: address_id.to_i,
-      #customer_id: customer_id.to_i,
-      #created_at: created_at.try(:strftime, '%FT%T'),
-      #updated_at: updated_at.try(:strftime, '%FT%T'),
-      #next_charge_scheduled_at: next_charge_scheduled_at.try(:strftime, '%FT%T'),
-      #cancelled_at: cancelled_at.try(:strftime, '%FT%T'),
-      #product_title: 'Sumatra Coffee',
-      #price: price,
-      #quantity: quantity,
-      #status: status,
-      #shopify_product_id: shopify_product_id.to_i,
-      #shopify_variant_id: shopify_variant_id.to_i,
-      #sku: sku,
-      #order_interval_unit: order_interval_unit,
-      #order_interval_frequency: order_interval_frequency,
-      #charge_interval_frequency: charge_interval_frequency,
-      #order_day_of_month: order_day_of_month,
-      #order_day_of_week: order_day_of_week,
-      #properties: raw_line_item_properties
-    #}
-  #end
 end
 
 class SubLineItem < ActiveRecord::Base

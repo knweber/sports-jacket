@@ -149,7 +149,7 @@ class EllieListener < Sinatra::Base
   end
 
   get '/subscription/:subscription_id' do |subscription_id|
-    subscription = Subscription.find_by(subscription_id: subscription_id)
+    subscription = Subscription.find(subscription_id)
     [200, @default_headers, subscription.to_json]
   end
 
@@ -180,18 +180,16 @@ class EllieListener < Sinatra::Base
     end
     # Recharge and cache update
     begin
-      body = {properties: line_items.map{|i| {name: i.name, value: i.value}}}
-      body_json = body.to_json
-      logger.debug "sending to recharge: #{body_json}"
-      res = RechargeAPI.put("/subscriptions/#{subscription_id}", {body: body_json})
-      logger.debug "response body: #{res.body.inspect}"
-      raise "Error updating sizes. Please try again later." unless res.success?
+      body = {id: subscription_id, properties: line_items.map{|i| {name: i.name, value: i.value}}}
+      #res = RechargeAPI.put("/subscriptions/#{subscription_id}", {body: body_json})
+      queued = Subscription.async(:recharge_update, body)
+      raise 'Error updating sizes. Please try again later.' unless queued
       line_items.each(&:save!)
     rescue Exception => e
       logger.error e.inspect
       return [500, @default_headers, {error: e}.to_json]
     end
-    [200, @default_headers, body_json]
+    [200, @default_headers, body.to_json]
   end
 
   put '/subscription/:subscription_id' do |subscription_id|
@@ -227,6 +225,28 @@ class EllieListener < Sinatra::Base
     output = {subscription: subscription}
     [200, @default_headers, output.to_json]
   end
+
+  post '/subscription/:subscription_id/skip' do |subscription_id|
+  end
+
+  # demo endpoints for customers
+
+  get '/customers' do
+    customers = params.empty? ? Customer.all : Customer.where(params)
+    output = customers.map(&:as_recharge).to_json
+    [200, @default_headers, output]
+  end
+
+  get '/customers/:customer_id' do |customer_id|
+    customer = Customer.find(customer_id)
+    output = customer.as_recharge.to_json
+    [200, @default_headers, output]
+  end
+
+  put '/customer/:customer_id' do |customer_id|
+    customer = Customer.find(customer_id)
+  end
+
 
   private
 

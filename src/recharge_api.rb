@@ -59,10 +59,6 @@ module RechargeActiveRecordInclude
     base.extend(ClassMethods)
   end
 
-  def as_recharge
-    raise "ERROR: #{self.class.name}#as_recharge is not defined. This method is required to send data compatible with the Recharge API"
-  end
-
   def recharge_update
     self.class.recharge_update(as_recharge)
   end
@@ -75,47 +71,87 @@ module RechargeActiveRecordInclude
     self.class.recharge_delete(as_recharge)
   end
 
+  def as_recharge
+    remapped = self.class.api_map.map do |m|
+      local = self[m[:local_key]]
+      transform = m[:outbound] || ->(i){ i }
+      [m[:remote_key], transform.call(local)]
+    end
+    remapped.to_h
+  end
+
   module ClassMethods
 
-    def from_recharge(*_)
-      raise "Error: #{name}::from_recharge is not defined."
+    def from_recharge(obj)
+      #raise "Error: #{name}::from_recharge is not defined."
+      new(map_in(obj))
     end
 
-    def fetch(id)
-      raise 'unimplemented'
-    end
-
-    def recharge_count(options)
-      res = RechargeAPI.get("/#{name.tableize}/count", query: options)
+    def recharge_count(query, _options = {})
+      res = RechargeAPI.get("/#{name.tableize}/count", query: query)
       res.parsed_response[:count]
     end
 
-    def recharge_list(options)
-      res = RechargeAPI.get("/#{name.tableize}", query: options)
+    def recharge_list(query, _options = {})
+      res = RechargeAPI.get("/#{name.tableize}", query: query)
       res.parsed_response[name.tableize]
     end
 
-    def recharge_read(id)
+    def recharge_read(id, given_options = {})
+      default_options = { persist: true }
+      options = default_options.merge given_options
       res = RechargeAPI.get("/#{name.tableize}/#{id}")
-      res.parsed_response[name.underscore]
+      return unless res.success?
+      parsed = res.parsed_response[name.underscore]
+      mapped = map_in(parsed)#.reject { |_, v| v.nil? }
+      existing_record = find(id)
+      logger.debug "parsed: #{parsed}"
+      logger.debug "mapped in: #{mapped}"
+      return new(mapped) unless options[:persist]
+      if existing_record.nil?
+        create mapped
+      else
+        existing_record.update mapped
+        existing_record
+      end
     end
 
-    def recharge_update(obj)
+    def recharge_update(obj, given_options = {})
+      default_options = { persist: true }
+      options = default_options.merge given_options
       res = RechargeAPI.put("/#{name.tableize}/#{obj[:id]}", body: obj.to_json)
-      res.parsed_response[name.underscore]
+      return unless res.success? && options[:persist]
+      parsed = res.parsed_response[name.underscore]
+      find(parsed[:id]).update(map_in(obj))
     end
 
-    def recharge_create(obj)
+    def recharge_create(obj, given_options = {})
+      default_options = { persist: true }
+      options = default_options.merge given_options
       res = RechargeAPI.post("/#{name.tableize}", body: obj.to_json)
-      res.success?
+      return unless res.success? && options[:persist]
+      parsed = res.parsed_response[name.underscore]
+      create(map_in(parsed)) 
     end
 
-    def recharge_delete(id)
+    def recharge_delete(id, given_options = {})
+      default_options = { persist: true }
+      options = default_options.merge given_options
       res = RechargeAPI.delete("/#{name.tableize}/#{id}")
-      res.success?
+      return unless res.success? && options[:persist]
+      delete id
     end
 
     private
+
+    def map_in(obj)
+      remapped = api_map.map do |m|
+        remote = obj[m[:remote_key]]
+        transform = m[:inbound]
+        [m[:local_key], transform.call(remote)]
+      end
+      remapped.to_h
+    end
 
     def diff(left, right)
       column_names.reject { |col| left[col] == right[col] }

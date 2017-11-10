@@ -15,16 +15,12 @@ module Async
       :default
     end
 
-    def perform(method, obj, options)
-      send(method, obj)
+    def perform(method, *args)
+      send(method, *args)
     end
 
-    def async(method, obj, options = {})
-      Resque.enqueue(self, method, obj, options)
-    end
-
-    def key_name
-      "#{name.downcase}_id"
+    def async(method, *args)
+      Resque.enqueue(self, method, *args)
     end
   end
 end
