@@ -18,7 +18,8 @@ class Subscription < ActiveRecord::Base
   has_many :line_items, class_name: 'SubLineItem'
   has_many :order_line_items, class_name: 'OrderLineItemsFixed'
   has_many :orders, through: :order_line_items
-                    #foreign_key: :subscription_id,
+
+  after_save :update_line_items
 
   PREPAID_PRODUCTS = [
     { id: '9421067602', title: '3 MONTHS' },
@@ -47,23 +48,24 @@ class Subscription < ActiveRecord::Base
     to_i = ->(x) { x.to_i }
     recharge_time = ->(time) { time.try(:strftime, '%FT%T') }
     to_time = ->(str) { str.nil? ? nil : Time.parse(str) }
+    to_f = ->(x) { x.to_f }
     [
       {
         remote_key: 'id',
         local_key: 'subscription_id',
-        inbound: to_s,
+        inbound: identity,
         outbound: to_i,
       },
       {
         remote_key: 'address_id',
         local_key: 'address_id',
-        inbound: to_s,
+        inbound: identity,
         outbound: to_i,
       },
       {
         remote_key: 'customer_id',
         local_key: 'customer_id',
-        inbound: to_s,
+        inbound: identity,
         outbound: to_i,
       },
       {
@@ -117,14 +119,14 @@ class Subscription < ActiveRecord::Base
       {
         remote_key: 'shopify_product_id',
         local_key: 'shopify_product_id',
-        inbound: ->(int){ int.to_s },
-        outbound: ->(str){ str.to_i },
+        inbound: identity,
+        outbound: to_i,
       },
       {
         remote_key: 'shopify_variant_id',
         local_key: 'shopify_variant_id',
-        inbound: ->(int){ int.to_s },
-        outbound: ->(str){ str.to_i },
+        inbound: identity,
+        outbound: to_i,
       },
       {
         remote_key: 'sku',
@@ -185,6 +187,27 @@ class Subscription < ActiveRecord::Base
                        .first
     next_order.try(&:scheduled_at)
   end
+
+  def sizes
+    line_items.where(name: SubLineItem::SIZE_PROPERTIES)
+  end
+
+  private
+
+  def update_line_items
+    return unless saved_change_to_attribute? :raw_line_item_properties
+    Subscription.transaction do
+      raw_line_item_properties.each do |prop|
+        sub = SubLineItem.find_or_create_by(
+          subscription_id: subscription_id,
+          name: prop[:name],
+        )
+        sub.value = prop[:value]
+        sub.save!
+      end
+    end
+  end
+
 end
 
 class SubLineItem < ActiveRecord::Base
@@ -234,27 +257,220 @@ class Charge < ActiveRecord::Base
   has_one :shipping_address_assoc, class_name: 'ChargeShippingAddress'
   has_many :shipping_lines, class_name: 'ChargeShippingLine'
 
-  def as_recharge
-    {
-      address_id: address_id.to_i,
-      billing_address: billing_address,
-      client_details:  charge_details,
-      created_at: created_at.try(:strftime, '%FT%T'),
-      customer_hash: customer_hash,
-      customer_id: customer_id.to_i,
-      first_name: first_name,
-      id: charge_id.to_i,
-      last_name: last_name,
-      line_items: line_items,
-      processed_at: processed_at.try(:strftime, '%FT%T'),
-      scheduled_at: scheduled_at.try(:strftime, '%FT%T'),
-      shipments_count: shipments_count,
-      shipping_address: shipping_address,
-      shopify_order_id: shopify_order_id,
-      status: status,
-      total_price: total_price.to_s,
-      updated_at: updated_at.try(:strftime, '%FT%T')
-    }
+  after_save :update_shipping_address_assoc
+  after_save :update_shipping_lines
+
+  def self.api_map
+    # helper functions
+    identity = ->(x) { x }
+    to_s = ->(x) { x.to_s }
+    to_i = ->(x) { x.to_i }
+    recharge_time = ->(time) { time.try(:strftime, '%FT%T') }
+    to_time = ->(str) { str.nil? ? nil : Time.parse(str) }
+    to_f = ->(x) { x.to_f }
+    [
+      {
+        remote_key: 'id',
+        local_key: 'charge_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'address_id',
+        local_key: 'address_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'billing_address',
+        local_key: 'billing_address',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'browser_ip',
+        local_key: 'browser_ip',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'client_details',
+        local_key: 'client_details',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'created_at',
+        local_key: 'created_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'customer_hash',
+        local_key: 'customer_hash',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'customer_id',
+        local_key: 'customer_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'first_name',
+        local_key: 'first_name',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'last_name',
+        local_key: 'last_name',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'line_items',
+        local_key: 'line_items',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'line_items',
+        local_key: 'raw_line_items',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'note',
+        local_key: 'note',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'note_attributes',
+        local_key: 'note_attributes',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'processed_at',
+        local_key: 'processed_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'scheduled_at',
+        local_key: 'scheduled_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'shipments_count',
+        local_key: 'shipments_count',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'shipping_address',
+        local_key: 'shipping_address',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'shopify_order_id',
+        local_key: 'shopify_order_id',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'status',
+        local_key: 'status',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'sub_total',
+        local_key: 'sub_total',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'sub_total_price',
+        local_key: 'sub_total_price',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'tags',
+        local_key: 'tags',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'tax_lines',
+        local_key: 'tax_lines',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'total_discounts',
+        local_key: 'total_discounts',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'total_line_items_price',
+        local_key: 'total_line_items_price',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'total_tax',
+        local_key: 'total_tax',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'total_weight',
+        local_key: 'total_weight',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'total_price',
+        local_key: 'total_price',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'updated_at',
+        local_key: 'updated_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'discount_codes',
+        local_key: 'discount_codes',
+        inbound: identity,
+        outbound: identity,
+      },
+    ].freeze
+  end
+
+  def line_items=(val)
+    #logger.debug @attributes
+    super(val)
+  end
+
+  private
+
+  def update_shipping_address_assoc
+  end
+
+  def update_shipping_lines
+    return unless raw_shipping_lines_changed?
+    raw_shipping_lines
   end
 end
 
@@ -295,41 +511,182 @@ class Order < ActiveRecord::Base
   self.inheritance_column = nil
   self.primary_key = :order_id
 
-  has_one :line_items, class_name: 'OrderLineItemsFixed'
+  has_one :line_items_fixed, class_name: 'OrderLineItemsFixed'
+  has_one :line_items_variable, class_name: 'OrderLineItemsVariable'
   has_one :subscription, through: :line_items
+
+  def self.api_map
+    # helper functions
+    identity = ->(x) { x }
+    to_s = ->(x) { x.to_s }
+    to_i = ->(x) { x.to_i }
+    recharge_time = ->(time) { time.try(:strftime, '%FT%T') }
+    to_time = ->(str) { str.nil? ? nil : Time.parse(str) }
+    to_f = ->(x) { x.to_f }
+    [
+      {
+        remote_key: 'id',
+        local_key: 'order_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'address_id',
+        local_key: 'address_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'address_is_active',
+        local_key: 'address_is_active',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_address',
+        local_key: 'billing_address',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'charge_id',
+        local_key: 'charge_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'charge_status',
+        local_key: 'charge_status',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'created_at',
+        local_key: 'created_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'customer_id',
+        local_key: 'customer_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'email',
+        local_key: 'email',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'first_name',
+        local_key: 'first_name',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'last_name',
+        local_key: 'last_name',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'is_prepaid',
+        local_key: 'is_prepaid',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'line_items',
+        local_key: 'line_items',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'payment_processor',
+        local_key: 'payment_processor',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'processed_at',
+        local_key: 'processed_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'scheduled_at',
+        local_key: 'scheduled_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'shipped_date',
+        local_key: 'shipped_date',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'shopify_cart_token',
+        local_key: 'shopify_cart_token',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'shopify_id',
+        local_key: 'shopify_id',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'shopify_order_id',
+        local_key: 'shopify_order_id',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'shopify_order_number',
+        local_key: 'shopify_order_number',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'status',
+        local_key: 'status',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'total_price',
+        local_key: 'total_price',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'transaction_id',
+        local_key: 'transaction_id',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'type',
+        local_key: 'order_type',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'updated_at',
+        local_key: 'updated_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+    ]
+  end
 
   def subscription_id
     line_items.subscription_id
   end
-
-  def as_recharge
-    {
-      id: order_id.to_i,
-      customer_id: customer_id.to_i,
-      address_id: address_id.to_i,
-      charge_id: charge_id.to_i,
-      transaction_id: transaction_id,
-      shopify_order_id: shopify_order_id,
-      shopify_order_number: shopify_order_number.to_i,
-      created_at: created_at.try(:strftime, '%FT%T'),
-      updated_at: updated_at.try(:strftime, '%FT%T'),
-      scheduled_at: scheduled_at.try(:strftime, '%FT%T'),
-      processed_at: processed_at.try(:strftime, '%FT%T'),
-      status: status,
-      charge_status: charge_status,
-      type: type,
-      first_name: first_name,
-      last_name: last_name,
-      email: email,
-      payment_processor: payment_processor,
-      address_is_active: address_is_active,
-      is_prepaid: is_prepaid,
-      line_items: line_items,
-      total_price: total_price.to_s,
-      shipping_address: shipping_address,
-      billing_address: billing_address
-    }
-  end
+  
 end
 
 class Customer < ActiveRecord::Base
@@ -353,6 +710,19 @@ class Customer < ActiveRecord::Base
     remapped = attributes.map { |k, v| [key_map[k] || k, v] }.to_h
     logger.debug remapped
     Customer.new(remapped, *args)
+  end
+
+  def self.api_map
+    # helper functions
+    identity = ->(x) { x }
+    to_s = ->(x) { x.to_s }
+    to_i = ->(x) { x.to_i }
+    recharge_time = ->(time) { time.try(:strftime, '%FT%T') }
+    to_time = ->(str) { str.nil? ? nil : Time.parse(str) }
+    to_f = ->(x) { x.to_f }
+    [
+
+    ]
   end
 
   def as_recharge
