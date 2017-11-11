@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171106195056) do
+ActiveRecord::Schema.define(version: 20171110215720) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -89,6 +89,10 @@ ActiveRecord::Schema.define(version: 20171106195056) do
     t.decimal "total_price", precision: 10, scale: 2
     t.datetime "updated_at"
     t.jsonb "discount_codes"
+    t.datetime "synced_at"
+    t.jsonb "raw_line_items", default: [], null: false
+    t.jsonb "raw_shipping_lines", default: [], null: false
+    t.string "browser_ip"
     t.index ["address_id"], name: "index_charges_on_address_id"
     t.index ["charge_id"], name: "index_charges_on_charge_id"
     t.index ["customer_id"], name: "index_charges_on_customer_id"
@@ -121,13 +125,6 @@ ActiveRecord::Schema.define(version: 20171106195056) do
     t.index ["charge_id"], name: "index_charges_shipping_lines_on_charge_id"
   end
 
-  create_table "customer_info", force: :cascade do |t|
-    t.string "shopify_id"
-    t.string "subscription_id"
-    t.index ["shopify_id"], name: "index_customer_info_on_shopify_id"
-    t.index ["subscription_id"], name: "index_customer_info_on_subscription_id"
-  end
-
   create_table "customers", force: :cascade do |t|
     t.string "customer_id"
     t.string "customer_hash"
@@ -147,6 +144,7 @@ ActiveRecord::Schema.define(version: 20171106195056) do
     t.string "billing_phone"
     t.string "processor_type"
     t.string "status"
+    t.datetime "synced_at"
     t.index ["customer_id"], name: "index_customers_on_customer_id"
     t.index ["shopify_customer_id"], name: "index_customers_on_shopify_customer_id"
   end
@@ -230,6 +228,7 @@ ActiveRecord::Schema.define(version: 20171106195056) do
     t.decimal "total_price", precision: 10, scale: 2
     t.jsonb "shipping_address"
     t.jsonb "billing_address"
+    t.datetime "synced_at"
     t.index ["address_id"], name: "index_orders_on_address_id"
     t.index ["charge_id"], name: "index_orders_on_charge_id"
     t.index ["customer_id"], name: "index_orders_on_customer_id"
@@ -245,21 +244,6 @@ ActiveRecord::Schema.define(version: 20171106195056) do
     t.string "name"
     t.string "value"
     t.index ["subscription_id"], name: "index_sub_line_items_on_subscription_id"
-  end
-
-  create_table "subscription_update", force: :cascade do |t|
-    t.string "subscription_id"
-    t.string "customer_id"
-    t.string "first_name"
-    t.string "last_name"
-    t.string "product_title"
-    t.string "shopify_product_id"
-    t.string "shopify_variant_id"
-    t.string "sku"
-    t.boolean "updated", default: false
-    t.datetime "updated_at"
-    t.index ["customer_id"], name: "index_subscription_update_on_customer_id"
-    t.index ["subscription_id"], name: "index_subscription_update_on_subscription_id"
   end
 
   create_table "subscriptions", force: :cascade do |t|
@@ -283,6 +267,7 @@ ActiveRecord::Schema.define(version: 20171106195056) do
     t.integer "order_day_of_month"
     t.integer "order_day_of_week"
     t.jsonb "raw_line_item_properties"
+    t.datetime "synced_at"
     t.index ["address_id"], name: "index_subscriptions_on_address_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["subscription_id"], name: "index_subscriptions_on_subscription_id"
