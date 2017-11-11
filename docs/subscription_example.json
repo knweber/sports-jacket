@@ -1,0 +1,64 @@
+{
+  "subscription": {
+    "id": 8830329,
+    "address_id": 5981091,
+    "customer_id": 5239395,
+    "created_at": "2017-11-08T12:53:13",
+    "updated_at": "2017-11-08 12:53:13",
+    "next_charge_scheduled_at": "2017-12-08T00:00:00",
+    "cancelled_at": null,
+    "product_title": "Ellie 3- Pack",
+    "variant_title": "",
+    "price": 39.95,
+    "quantity": 1,
+    "status": "ACTIVE",
+    "shopify_product_id": 10016265938,
+    "shopify_variant_id": 38768359250,
+    "sku": "722457911110",
+    "order_interval_unit": "month",
+    "order_interval_frequency": "1",
+    "charge_interval_frequency": "1",
+    "cancellation_reason": null,
+    "order_day_of_week": null,
+    "order_day_of_month": 0,
+    "properties": [
+      {
+        "name": "charge_interval_frequency",
+        "value": "1"
+      },
+      {
+        "name": "charge_interval_unit_type",
+        "value": "Months"
+      },
+      {
+        "name": "leggings",
+        "value": "M"
+      },
+      {
+        "name": "main-product",
+        "value": "true"
+      },
+      {
+        "name": "shipping_interval_frequency",
+        "value": "1"
+      },
+      {
+        "name": "shipping_interval_unit_type",
+        "value": "Months"
+      },
+      {
+        "name": "sports-bra",
+        "value": "M"
+      },
+      {
+        "name": "tops",
+        "value": "L"
+      },
+      {
+        "name": "wrap",
+        "value": "One Size"
+      }
+    ],
+    "expire_after_specific_number_of_charges": null
+  }
+}

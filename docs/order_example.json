@@ -1,0 +1,102 @@
+{
+  "order": {
+    "address_id": 5944113,
+    "address_is_active": 1,
+    "billing_address": {
+      "address1": "4417 SW Hickory Lane ",
+      "address2": "",
+      "city": "Lawton",
+      "company": "",
+      "country": "United States",
+      "first_name": "Caitlin",
+      "last_name": "Ciralsky",
+      "phone": "",
+      "province": "Oklahoma",
+      "zip": "73505"
+    },
+    "charge_id": 30027105,
+    "charge_status": "SUCCESS",
+    "created_at": "2017-11-06T15:42:39",
+    "customer_id": 6158352,
+    "email": "cciralsky@gmail.com",
+    "first_name": "Caitlin",
+    "id": 21972129,
+    "is_prepaid": 0,
+    "last_name": "Ciralsky",
+    "line_items": [
+      {
+        "product_title": "Ellie 3- Pack",
+        "properties": [
+          {
+            "name": "charge_interval_frequency",
+            "value": "1"
+          },
+          {
+            "name": "charge_interval_unit_type",
+            "value": "Months"
+          },
+          {
+            "name": "leggings",
+            "value": "M"
+          },
+          {
+            "name": "main-product",
+            "value": "true"
+          },
+          {
+            "name": "shipping_interval_frequency",
+            "value": "1"
+          },
+          {
+            "name": "shipping_interval_unit_type",
+            "value": "Months"
+          },
+          {
+            "name": "sports-bra",
+            "value": "S"
+          },
+          {
+            "name": "tops",
+            "value": "S"
+          },
+          {
+            "name": "wrap",
+            "value": "One Size"
+          }
+        ],
+        "quantity": 1,
+        "shopify_product_id": "10016265938",
+        "shopify_variant_id": "38768359250",
+        "subscription_id": 8758578,
+        "title": "Ellie 3- Pack (Ships every 1 Month)",
+        "variant_title": ""
+      }
+    ],
+    "payment_processor": "stripe",
+    "processed_at": "2017-11-06T15:42:37",
+    "scheduled_at": "2017-11-06T00:00:00",
+    "shipped_date": "2017-11-06T15:42:37",
+    "shipping_address": {
+      "address1": "4417 SW Hickory Lane ",
+      "address2": "",
+      "city": "Lawton",
+      "company": "",
+      "country": "United States",
+      "first_name": "Caitlin",
+      "last_name": "Ciralsky",
+      "phone": "",
+      "province": "Oklahoma",
+      "zip": "73505"
+    },
+    "shipping_date": "2017-11-06T00:00:00",
+    "shopify_cart_token": "da58db404e02dd10ee524b10c41e280e",
+    "shopify_id": "23511367698",
+    "shopify_order_id": "23511367698",
+    "shopify_order_number": 49105,
+    "status": "SUCCESS",
+    "total_price": "39.95",
+    "transaction_id": "ch_1BLHQSKllW17GNediGBogdFo",
+    "type": "CHECKOUT",
+    "updated_at": "2017-11-06T15:42:39"
+  }
+}
