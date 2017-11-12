@@ -12,4 +12,9 @@ gem 'pg'
 gem "activesupport"
 gem "rake"
 gem "redis", "=3.3.5"
-gem "safe_attributes"
+
+group :development do
+  gem 'pry'
+  gem 'rack-test'
+  gem 'rubocop'
+end
