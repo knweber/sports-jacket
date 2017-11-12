@@ -32,6 +32,8 @@ class EllieListener < Sinatra::Base
   register Sinatra::ActiveRecordExtension
   include Logging
 
+  PAGE_LIMIT = 250
+
   configure do
 
     enable :logging
@@ -45,15 +47,15 @@ class EllieListener < Sinatra::Base
   def initialize
     @tokens = {}
     @key = ENV['SHOPIFY_API_KEY']
-    @secret = ENV['SHOPIFY_SHARED_SECRET'] 
-    @app_url = "ec2-174-129-48-228.compute-1.amazonaws.com"
-    @default_headers = {"Content-Type" => "application/json"}
+    @secret = ENV['SHOPIFY_SHARED_SECRET']
+    @app_url = 'ec2-174-129-48-228.compute-1.amazonaws.com'
+    @default_headers = { 'Content-Type' => 'application/json' }
     super
   end
 
   get '/install' do
-    shop = "elliestaging.myshopify.com"
-    scopes = "read_orders, write_orders, read_products, read_customers, write_customers"
+    shop = 'elliestaging.myshopify.com'
+    scopes = 'read_orders, write_orders, read_products, read_customers, write_customers'
 
     # construct the installation URL and redirect the merchant
     install_url =
@@ -113,18 +115,21 @@ class EllieListener < Sinatra::Base
   end
 
   get '/hello' do
-    "Hello, success, thanks for installing me!"
+    'Hello, success, thanks for installing me!'
   end
 
   get '/test' do
-    "Hi there endpoint is active"
+    'Hi there endpoint is active'
   end
 
-  get '/subscriptions' do 
+  get '/subscriptions' do
+  end
+
+  get '/subscriptions/meta' do 
     shopify_id = params['shopify_id']
     logger.debug params.inspect
     if shopify_id.nil?
-      return [400, JSON.generate({error: 'shopify_id required'})]
+      return [400, @default_headers, JSON.generate(error: 'shopify_id required')]
     end
     data = Customer.joins(:subscriptions)
       .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
@@ -194,7 +199,9 @@ class EllieListener < Sinatra::Base
 
   put '/subscription/:subscription_id' do |subscription_id|
     subscription = Subscription.find_by(subscription_id: subscription_id)
-    return [400, @default_headers, {error: 'subscription_id not found'}.to_json] if subscription.nil?
+    if subscription.nil?
+      return [400, @default_headers, {error: 'subscription_id not found'}.to_json]
+    end
     begin
       json = JSON.parse request.body.read
       # NOTE: For future usability purposes we should probably just map the json
@@ -211,7 +218,7 @@ class EllieListener < Sinatra::Base
     begin
       body_json = body.to_json
       logger.debug "sending to recharge: #{body_json}"
-      res = RechargeAPI.put("/subscriptions/#{subscription_id}", {body: body_json})
+      res = RechargeAPI.put("/subscriptions/#{subscription_id}", body: body_json)
       logger.debug('request options: ' + res.request.options.inspect)
       logger.debug('recharge response: ' + res.parsed_response.inspect)
       logger.debug 'raw response: ' + res.body

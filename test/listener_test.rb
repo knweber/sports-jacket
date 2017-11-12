@@ -19,4 +19,9 @@ class ListenerTest < Test::Unit::TestCase
     assert !last_response.body.empty?
   end
 
+  def test_it_responds_to_subscriptions_get
+    get '/subscriptions'
+    assert last_response.ok?
+  end
+
 end
