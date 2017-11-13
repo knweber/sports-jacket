@@ -60,7 +60,7 @@ module EllieHelper
     logger.info "starting download"
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
-    my_insert = "insert into customers (customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
+    my_insert = "insert into customers (customer_id, customer_hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
     my_conn.prepare('statement1', "#{my_insert}") 
 
     start = Time.now
@@ -90,7 +90,7 @@ module EllieHelper
         billing_phone = mycust['billing_phone']
         processor_type = mycust['processor_type']
         status = mycust['status']
-        my_conn.exec_prepared('statement1', [customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
+        my_conn.exec_prepared('statement1', [customer_id, customer_hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
 
       end
       logger.info "Done with page #{page}"
@@ -119,11 +119,11 @@ module EllieHelper
     logger.info "Doing partial download new or modified customers since yesterday"
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
-    my_insert = "insert into customers (customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
+    my_insert = "insert into customers (customer_id, customer_hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
     my_conn.prepare('statement1', "#{my_insert}") 
 
     #Delete all customers from day before yesterday
-    my_temp_update = "update customers set hash = $1, email = $2,  updated_at = $3, first_name = $4, last_name = $5, billing_address1 = $6, billing_address2 = $7, billing_zip = $8, billing_city = $9, billing_company = $10, billing_province = $11, billing_country = $12, billing_phone = $13, processor_type = $14, status = $15  where customer_id = $16 "
+    my_temp_update = "update customers set customer_hash = $1, email = $2,  updated_at = $3, first_name = $4, last_name = $5, billing_address1 = $6, billing_address2 = $7, billing_zip = $8, billing_city = $9, billing_company = $10, billing_province = $11, billing_country = $12, billing_phone = $13, processor_type = $14, status = $15  where customer_id = $16 "
     my_conn.prepare('statement2', "#{my_temp_update}")
 
 
@@ -1022,7 +1022,7 @@ module EllieHelper
     myuri = URI.parse(uri)
     conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
 
-    my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
+    my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, order_type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
     conn.prepare('statement1', "#{my_insert}")  
 
     my_order_line_fixed_insert = "insert into order_line_items_fixed (order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title) values ($1, $2, $3, $4, $5, $6, $7, $8)"
@@ -1158,7 +1158,7 @@ module EllieHelper
 
 
         #Determine if order exists in DB or not, if so update rather than insert 
-        order_hash = {"order_id" => order_id, "transaction_id" => transaction_id, "charge_status" => charge_status, "payment_processor" => payment_processor, "address_is_active" => address_is_active, "status" => status, "type" => type, "charge_id" => charge_id, "address_id" => address_id, "shopify_id" => shopify_id, "shopify_order_id" => shopify_order_id, "shopify_order_number" => shopify_order_number, "shopify_cart_token" => shopify_cart_token, "shipping_date" => shipping_date, "scheduled_at" => scheduled_at, "shipped_date" => shipped_date, "processed_at" => processed_at, "customer_id" => customer_id, "first_name" => first_name, "last_name" => last_name, "is_prepaid" => is_prepaid, "created_at" => created_at, "updated_at" => updated_at, "email" => email, "line_items" => line_items, "total_price" => total_price, "shipping_address" => shipping_address, "billing_address" => billing_address}
+        order_hash = {"order_id" => order_id, "transaction_id" => transaction_id, "charge_status" => charge_status, "payment_processor" => payment_processor, "address_is_active" => address_is_active, "status" => status, "order_type" => type, "charge_id" => charge_id, "address_id" => address_id, "shopify_id" => shopify_id, "shopify_order_id" => shopify_order_id, "shopify_order_number" => shopify_order_number, "shopify_cart_token" => shopify_cart_token, "shipping_date" => shipping_date, "scheduled_at" => scheduled_at, "shipped_date" => shipped_date, "processed_at" => processed_at, "customer_id" => customer_id, "first_name" => first_name, "last_name" => last_name, "is_prepaid" => is_prepaid, "created_at" => created_at, "updated_at" => updated_at, "email" => email, "line_items" => line_items, "total_price" => total_price, "shipping_address" => shipping_address, "billing_address" => billing_address}
 
         insert_update_orders(uri, order_hash)
 
@@ -1341,7 +1341,7 @@ module EllieHelper
     payment_processor = order_hash['payment_processor']
     address_is_active = order_hash['address_is_active']
     status = order_hash['status']
-    type = order_hash['type']
+    type = order_hash['order_type']
     charge_id = order_hash['charge_id']
     address_id = order_hash['address_id']
     shopify_id = order_hash['shopify_id']
@@ -1368,10 +1368,10 @@ module EllieHelper
     myuri = URI.parse(uri)
     my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
 
-    my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
+    my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, order_type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
 
     my_conn.prepare('statement1', "#{my_insert}")
-    my_temp_update = "update orders set transaction_id = $1, charge_status = $2, payment_processor = $3, address_is_active = $4, status = $5, type = $6, charge_id = $7, address_id = $8, shopify_id = $9, shopify_order_id = $10, shopify_order_number = $11, shopify_cart_token = $12, shipping_date = $13, scheduled_at = $14, shipped_date = $15, processed_at = $16, customer_id = $17, first_name = $18, last_name = $19, is_prepaid = $20, created_at = $21, updated_at = $22, email = $23, line_items = $24, total_price = $25, shipping_address = $26, billing_address = $27 where order_id = $28"
+    my_temp_update = "update orders set transaction_id = $1, charge_status = $2, payment_processor = $3, address_is_active = $4, status = $5, order_type = $6, charge_id = $7, address_id = $8, shopify_id = $9, shopify_order_id = $10, shopify_order_number = $11, shopify_cart_token = $12, shipping_date = $13, scheduled_at = $14, shipped_date = $15, processed_at = $16, customer_id = $17, first_name = $18, last_name = $19, is_prepaid = $20, created_at = $21, updated_at = $22, email = $23, line_items = $24, total_price = $25, shipping_address = $26, billing_address = $27 where order_id = $28"
     my_conn.prepare('statement2', "#{my_temp_update}")
 
     temp_select = "select * from orders where order_id = \'#{order_id}\'"
@@ -1421,7 +1421,7 @@ module EllieHelper
     myuri = URI.parse(uri)
     conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
 
-    my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
+    my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, order_type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
     conn.prepare('statement1', "#{my_insert}")  
 
     my_order_line_fixed_insert = "insert into order_line_items_fixed (order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title) values ($1, $2, $3, $4, $5, $6, $7, $8)"
