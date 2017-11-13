@@ -2,11 +2,13 @@ root = "#{Dir.getwd}"
 
 environment 'production'
 
-workers 4
+
+
 
 #bind "unix://#{root}/tmp/puma.sock"
 #bind "tcp://localhost:9292"
 bind "tcp://0.0.0.0:9292"
+#bind "tcp://0.0.0.0:8080"
 pidfile "#{root}/tmp/pids/puma.pid"
 
 

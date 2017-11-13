@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171004183754) do
+ActiveRecord::Schema.define(version: 20171106214444) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -123,7 +123,7 @@ ActiveRecord::Schema.define(version: 20171004183754) do
 
   create_table "customers", force: :cascade do |t|
     t.string "customer_id"
-    t.string "hash"
+    t.string "customer_hash"
     t.string "shopify_customer_id"
     t.string "email"
     t.datetime "created_at"
@@ -201,7 +201,7 @@ ActiveRecord::Schema.define(version: 20171004183754) do
     t.string "payment_processor"
     t.integer "address_is_active"
     t.string "status"
-    t.string "type"
+    t.string "order_type"
     t.string "charge_id"
     t.string "address_id"
     t.string "shopify_id"
