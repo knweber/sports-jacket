@@ -213,7 +213,7 @@ module DetermineInfo
         begin
           property_change_recharge = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{subscription_id}", :headers => @my_change_charge_header, :body => properties)  
 
-        rescue => exception
+        rescue StandardError => exception
           logger.error "We can't process id #{subscription_id}"
         else
           #mark processed to true

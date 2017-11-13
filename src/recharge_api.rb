@@ -52,6 +52,13 @@ class RechargeAPI
       []
     end
   end
+
+  # TODO
+  def self.skip!(subscription_id, charge_id)
+    body = {subscription_id: subscription_id}
+    res = RechargeAPI.post("/charges/#{charge_id}/skip", body: body.to_json)
+    res.success?
+  end
 end
 
 module RechargeActiveRecordInclude

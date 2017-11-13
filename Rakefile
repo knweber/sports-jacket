@@ -12,9 +12,9 @@ require_relative 'src/models/model'
 
 Resque.logger =
   if ENV['production']
-    Logger.new STDOUT, level: Logger::INFO
+    Logger.new STDOUT, level: Logger::WARNING
   else
-    Logger.new STDOUT, level: Logger::DEBUG
+    Logger.new STDOUT, level: Logger::INFO
   end
 
 desc 'do full or partial pull of customers and add to DB'

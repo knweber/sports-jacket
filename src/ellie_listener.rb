@@ -200,32 +200,20 @@ class EllieListener < Sinatra::Base
   put '/subscription/:subscription_id' do |subscription_id|
     subscription = Subscription.find_by(subscription_id: subscription_id)
     if subscription.nil?
-      return [400, @default_headers, {error: 'subscription_id not found'}.to_json]
+      return [400, @default_headers, {error: 'subscription not found'}.to_json]
     end
     begin
       json = JSON.parse request.body.read
-      # NOTE: For future usability purposes we should probably just map the json
-      # field names 1:1. Or at least a subset of them.
-      body = {
-        'product_title' => json['alt_product_title'],
-        'shopify_product_id' => json['alt_product_id'],
-        'shopify_variant_id' => json['alt_product_variant_id'],
-        'sku' => json['alt_product_sku'],
-      }
+      matching_keys = (subscription.API_MAP.pluck(:remote_keys) & json.keys)
+      subscription.update(json.select { |k, _| matching_keys.include? k })
     rescue
       return [400, @default_headers, {error: 'invalid payload data'}.to_json]
     end
     begin
-      body_json = body.to_json
-      logger.debug "sending to recharge: #{body_json}"
-      res = RechargeAPI.put("/subscriptions/#{subscription_id}", body: body_json)
-      logger.debug('request options: ' + res.request.options.inspect)
-      logger.debug('recharge response: ' + res.parsed_response.inspect)
-      logger.debug 'raw response: ' + res.body
-      raise 'Error processing subscription change. Please try again later.' unless res.success?
-      body.each{|k,v| subscription[k] ||= v }
+      res = Subscription.async(:recharge_update, subscription.as_recharge)
+      raise 'Error processing subscription change. Please try again later.' unless res
       subscription.save
-    rescue Exception => e
+    rescue StandardError => e
       logger.error e.inspect
       return [500, @default_headers, {error: e}.to_json]
     end
@@ -234,6 +222,10 @@ class EllieListener < Sinatra::Base
   end
 
   post '/subscription/:subscription_id/skip' do |subscription_id|
+    sub = Subscription.find subscription_id
+    return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
+    orders = sub.orders
+
   end
 
   # demo endpoints for customers

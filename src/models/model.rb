@@ -1,6 +1,5 @@
 require 'active_record'
 require 'active_record/base'
-require 'safe_attributes'
 require_relative '../recharge_api'
 require_relative '../async'
 
@@ -458,6 +457,11 @@ class Charge < ActiveRecord::Base
     ].freeze
   end
 
+  def self.by_subscription_id(subscription_id)
+    where('line_items @> \'[{"subscription_id": ?}]\'', subscription_id)
+  end
+
+
   def line_items=(val)
     #logger.debug @attributes
     super(val)
@@ -699,12 +703,6 @@ class Customer < ActiveRecord::Base
   has_many :subscriptions
   has_many :orders, through: :subscriptions
 
-  # This safe attributes line is due to an actvive record error on the Customer
-  # table. The table contains a column named `hash` which collides with the
-  # ActiveRecord::Base#hash method. For mor info see:
-  # https://github.com/rails/rails/issues/18338
-  include SafeAttributes::Base
-
   def self.from_recharge(attributes, *args)
     key_map = { 'hash' => 'customer_hash' }
     remapped = attributes.map { |k, v| [key_map[k] || k, v] }.to_h
@@ -721,11 +719,118 @@ class Customer < ActiveRecord::Base
     to_time = ->(str) { str.nil? ? nil : Time.parse(str) }
     to_f = ->(x) { x.to_f }
     [
-
+      {
+        remote_key: 'id',
+        local_key: 'customer_id',
+        inbound: identity,
+        outbound: to_i,
+      },
+      {
+        remote_key: 'hash',
+        local_key: 'customer_hash',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'shopify_customer_id',
+        local_key: 'shopify_customer_id',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'email',
+        local_key: 'email',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'created_at',
+        local_key: 'created_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'updated_at',
+        local_key: 'updated_at',
+        inbound: to_time,
+        outbound: recharge_time,
+      },
+      {
+        remote_key: 'first_name',
+        local_key: 'first_name',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'last_name',
+        local_key: 'last_name',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_address1',
+        local_key: 'billing_address1',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_address2',
+        local_key: 'billing_address2',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_zip',
+        local_key: 'billing_zip',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_city',
+        local_key: 'billing_city',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_company',
+        local_key: 'billing_company',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_province',
+        local_key: 'billing_province',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_country',
+        local_key: 'billing_country',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'billing_phone',
+        local_key: 'billing_phone',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'processor_type',
+        local_key: 'processor_type',
+        inbound: identity,
+        outbound: identity,
+      },
+      {
+        remote_key: 'status',
+        local_key: 'status',
+        inbound: identity,
+        outbound: identity,
+      },
     ]
   end
 
-  def as_recharge
+  def _as_recharge
     {
       id: customer_id.to_i,
       hash: customer_hash,
