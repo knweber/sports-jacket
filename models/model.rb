@@ -1,13 +1,21 @@
 require 'active_record'
 require 'active_record/base'
+<<<<<<< HEAD
 #require 'safe_attributes'
 
 class Subscription < ActiveRecord::Base
+=======
+require 'safe_attributes'
+
+class Subscription < ActiveRecord::Base
+  has_many :orders, primary_key: :subscription_id, foreign_key: :subscription_id
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
   belongs_to :customer, primary_key: :customer_id
   has_many :line_items, {
     class_name: "SubLineItem",
     primary_key: :subscription_id,
   }
+<<<<<<< HEAD
   has_many :order_line_items, {
     primary_key: :subscription_id,
     class_name: 'OrderLineItemsFixed'
@@ -19,6 +27,10 @@ class Subscription < ActiveRecord::Base
   }
   PREPAID_PRODUCTS = [
     {id: "23729012754", title: "3 MONTHS"},
+=======
+  PREPAID_PRODUCTS = [
+    {id: "9421067602", title: "3 MONTHS"},
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
     {id: "8204584905", title: "6 Month Box"},
     {id: "9109818066", title: "VIP 3 Month Box"},
     {id: "9175678162", title: "VIP 3 Monthly Box"},

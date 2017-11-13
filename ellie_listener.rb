@@ -9,8 +9,12 @@ require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
 require_relative 'models/model'
+<<<<<<< HEAD
 #require_relative 'recharge_api'
 require_relative "resque_helper"
+=======
+require_relative 'recharge_api'
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
 require_relative 'logging'
 
 class EllieListener < Sinatra::Base
@@ -31,6 +35,7 @@ class EllieListener < Sinatra::Base
     @tokens = {}
     @key = ENV['SHOPIFY_API_KEY']
     @secret = ENV['SHOPIFY_SHARED_SECRET'] 
+<<<<<<< HEAD
     @app_url = "ellieactivesupport.com"
     @default_headers = {"Content-Type" => "application/json"}
     @recharge_token = ENV['RECHARGE_ACCESS_TOKEN']
@@ -39,6 +44,10 @@ class EllieListener < Sinatra::Base
       "Accept" => "application/json",
       "Content-Type" =>"application/json"
     }
+=======
+    @app_url = "ec2-174-129-48-228.compute-1.amazonaws.com"
+    @default_headers = {"Content-Type" => "application/json"}
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
     super
   end
 
@@ -117,14 +126,23 @@ class EllieListener < Sinatra::Base
     if shopify_id.nil?
       return [400, JSON.generate({error: 'shopify_id required'})]
     end
+<<<<<<< HEAD
     data = Customer.joins(:subscriptions)
       .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
       .subscriptions
+=======
+    #subscriptions = Recharge.subscriptions_by_shopify_id shopify_id
+    data = Customer.joins(:subscriptions)
+      .where(shopify_customer_id: shopify_id)
+      .collect(&:subscriptions)
+      .flatten
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
       .map{|sub| [sub, sub.orders]}
     output = data.map{|i| transform_subscriptions(*i)}
     [200, @default_headers, JSON.generate(output)]
   end
 
+<<<<<<< HEAD
   post '/subscriptions' do
     json = JSON.parse request.body.read
     shopify_id = json['shopify_id']
@@ -140,6 +158,21 @@ class EllieListener < Sinatra::Base
   end
 
   private
+=======
+  #post '/subscriptions' do
+    #json = JSON.parse request.body.read
+    #shopify_id = json['shopify_id']
+    #unless shopify_id.instance_of? Integer
+      #return [400, JSON.generate({error: 'shopify_id required'})]
+    #end
+    #subscriptions = Recharge.subscriptions_by_shopify_id shopify_id
+    #collection = subscriptions.map{|s| [s, s.orders]}
+    #output = subscriptions.map{|i| transform_subscriptions(*i)}
+    #[200, JSON.generate(output)]
+  #end
+
+  #private
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
 
   def transform_subscriptions(sub, orders)
     logger.debug "subscription: #{sub.inspect}"
@@ -147,13 +180,19 @@ class EllieListener < Sinatra::Base
       shopify_product_id: sub.shopify_product_id.to_i,
       subscription_id: sub.subscription_id.to_i,
       product_title: sub.product_title,
+<<<<<<< HEAD
       next_charge: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
       charge_date: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
+=======
+      next_charge: sub.next_charge_scheduled_at.strftime('%Y-%m-%d'),
+      charge_date: sub['next_charge_scheduled_at'].strftime('%Y-%m-%d'),
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
       sizes: sub.line_items
         .select {|l| l.size_property?}
         .map{|p| [p['name'], p['value']]}
         .to_h,
       prepaid: sub.prepaid?,
+<<<<<<< HEAD
       prepaid_shipping_at: sub.shipping_at.try{|time| time.strftime('%Y-%m-%d')},
     }
   end
@@ -220,4 +259,10 @@ class EllieListener < Sinatra::Base
     end
   end
 
+=======
+      prepaid_shipping_at: sub.prepaid? ? sub.shipping_at : nil,
+    }
+  end
+
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
 end

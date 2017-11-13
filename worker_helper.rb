@@ -1435,95 +1435,242 @@ module EllieHelper
     
         end
         
-    
-        def insert_update_orders_sa(uri, order_shipping_address_hash)
-            order_id = order_shipping_address_hash['order_id']
-            province = order_shipping_address_hash['province']
-            city = order_shipping_address_hash['city']
-            first_name = order_shipping_address_hash['first_name']
-            last_name = order_shipping_address_hash['last_name']
-            zip = order_shipping_address_hash['zip']
-            country = order_shipping_address_hash['country']
-            address1 = order_shipping_address_hash['address1']
-            address2 = order_shipping_address_hash['address2']
-            company = order_shipping_address_hash['company']
-            phone = order_shipping_address_hash['phone']
-    
-            myuri = URI.parse(uri)
-            my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
-    
-            my_insert = "insert into order_shipping_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-            
-            my_conn.prepare('statement1', "#{my_insert}")
-            my_temp_update = "update order_shipping_address set province = $1, city = $2, first_name = $3, last_name = $4, zip = $5, country = $6, address1 = $7, address2 = $8, company = $9, phone = $10 where order_id = $11"
-            my_conn.prepare('statement2', "#{my_temp_update}")
-            #puts "got here eh"
-    
-            temp_select = "select * from order_billing_address where order_id = \'#{order_id}\'"
-            temp_result = my_conn.exec(temp_select)
-            if !temp_result.num_tuples.zero?
-                puts "&&&&&&&&&&&&&&&&&"
-                puts "Found existing order_billing_address record"
-                temp_result.each do |myrow|
-                    puts myrow.inspect
-                    #order_id = myrow['order_id']
-                    puts "Order shipping address #{order_id}"
-                    #puts "shipping_date ---------- #{shipping_date}"
-                    
-                    indy_result = my_conn.exec_prepared('statement2', [ province, city, first_name, last_name, zip, country, address1, address2, company, phone, order_id])
-                    puts indy_result.inspect
-                    puts "&&&&&&&&&&&&&&&&&&"
+
+        my_insert_billing = "insert into charge_billing_address (address1, address2, city, company, country, first_name, last_name, phone, province, zip, charge_id) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement2', "#{my_insert_billing}")
+
+        my_insert_client_details = "insert into charge_client_details (charge_id, browser_ip, user_agent) values ($1, $2, $3)"
+        my_conn.prepare('statement3', "#{my_insert_client_details}")
+
+        my_insert_fixed_line_items = "insert into charge_fixed_line_items (charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement4', "#{my_insert_fixed_line_items}")
+
+        my_insert_variable_line_items = "insert into charge_variable_line_items (charge_id, name, value) values ($1, $2, $3)"
+        my_conn.prepare('statement5', "#{my_insert_variable_line_items}")
+
+        my_insert_charges_shipping_address = "insert into charges_shipping_address (charge_id, address1, address2, city, company, country, first_name, last_name, phone, province, zip) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement6', "#{my_insert_charges_shipping_address}")
+
+        my_insert_charges_shipping_lines = "insert into charges_shipping_lines (charge_id, code, price, source, title, tax_lines, carrier_identifier, request_fulfillment_service_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+        my_conn.prepare('statement7', "#{my_insert_charges_shipping_lines}") 
+
+        #puts "At here"
+        start = Time.now
+        page_size = 250
+        num_pages = (num_charges/page_size.to_f).ceil
+        1.upto(num_pages) do |page|
+            charges = HTTParty.get("https://api.rechargeapps.com/charges?updated_at_min=#{updated_at_min}&limit=250&page=#{page}", :headers => header_info)
+            my_charges = charges.parsed_response['charges']
+            my_charges.each do |charge|
+                #puts "-------------"
+                #puts charge.inspect
+                #puts "-------------"
+                begin
+                address_id = charge['address_id']
+                raw_billing_address = charge['billing_address']
+                billing_address = charge['billing_address'].to_json
+                billing_address1 = raw_billing_address['address1']
+                billing_address2 = raw_billing_address['address2']
+                billing_address_city = raw_billing_address['city']
+                billing_address_company = raw_billing_address['company']
+                billing_address_country = raw_billing_address['country']
+                billing_address_first_name = raw_billing_address['first_name']
+                billing_address_last_name = raw_billing_address['last_name']
+                billing_address_phone = raw_billing_address['phone']
+                billing_address_province = raw_billing_address['province']
+                billing_address_zip = raw_billing_address['zip']
+
+                   
+
+                client_details = charge['client_details'].to_json
+                raw_client_details = charge['client_details']
+                browser_ip = raw_client_details['browser_ip']
+                user_agent = raw_client_details['user_agent']
+               
+
+
+                created_at = charge['created_at']
+                customer_hash = charge['customer_hash']
+                customer_id = charge['customer_id']
+                discount_codes = charge['discount_codes'].to_json
+                first_name = charge['first_name']
+                charge_id = charge['id']
+                #insert charge_billing_address sub-table
+                #my_conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id ])
+
+                #create charge_billing_address hash, and send it to method to determine
+                #if insert or update
+
+                charge_billing_address_hash = {"billing_address1" => billing_address1, "billing_address2" => billing_address2, "billing_address_city" => billing_address_city, "billing_address_company" => billing_address_company, "billing_address_country" => billing_address_country, "billing_address_first_name" => billing_address_first_name, "billing_address_last_name" => billing_address_last_name, "billing_address_phone" => billing_address_phone, "billing_address_province" => billing_address_province, "billing_address_zip" => billing_address_zip, "charge_id" => charge_id}
+
+                insert_update_charge_billing_address(uri, charge_billing_address_hash)
+                rescue 
+                    puts "We could not insert or update the charge billing address"
+                else
+                    puts "No errors inserting or updating the charge billing address"
                 end
-            else
-                puts "*******************************"
-                puts "ORDER shipping address Record does not exist, inserting"
-                puts "*******************************"
-                
-                my_conn.exec_prepared('statement1', [ order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone])
-                puts "inserted charge #{order_id}"
-            end
-            my_conn.close
-    
-        end
-    
-        def insert_update_orders_ba(uri, order_billing_address_hash)
-            
-            order_id = order_billing_address_hash['order_id']
-            province = order_billing_address_hash['province']
-            city = order_billing_address_hash['city']
-            first_name = order_billing_address_hash['first_name']
-            last_name = order_billing_address_hash['last_name']
-            zip = order_billing_address_hash['zip']
-            country = order_billing_address_hash['country']
-            address1 = order_billing_address_hash['address1']
-            address2 = order_billing_address_hash['address2']
-            company = order_billing_address_hash['company']
-            phone = order_billing_address_hash['phone']
-    
-            myuri = URI.parse(uri)
-            my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
-    
-            my_insert = "insert into order_billing_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-            
-            my_conn.prepare('statement1', "#{my_insert}")
-            my_temp_update = "update order_billing_address set province = $1, city = $2, first_name = $3, last_name = $4, zip = $5, country = $6, address1 = $7, address2 = $8, company = $9, phone = $10 where order_id = $11"
-            my_conn.prepare('statement2', "#{my_temp_update}")
-            #puts "got here eh"
-    
-            temp_select = "select * from order_billing_address where order_id = \'#{order_id}\'"
-            temp_result = my_conn.exec(temp_select)
-            if !temp_result.num_tuples.zero?
-                puts "&&&&&&&&&&&&&&&&&"
-                puts "Found existing order_billing_address record"
-                temp_result.each do |myrow|
-                    puts myrow.inspect
-                    #order_id = myrow['order_id']
-                    puts "Order billing address #{order_id}"
-                    #puts "shipping_date ---------- #{shipping_date}"
+
+                #my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
+                #create charge_client_details_hash and send to method for insert/update
+
+                begin
+                charge_client_details_hash = {"charge_id" => charge_id, "browser_ip" => browser_ip, "user_agent" => user_agent}
+
+                if !browser_ip.nil?
+                    insert_update_charge_client_details(uri, charge_client_details_hash)
+                end
+                rescue
+                    puts "We could not update or insert the browser ip details"
+                else
+                    puts "no errors updating or inserting the browser ip details"
+                end
+
+                begin
+                #before updating/inserting variable line items delete everything in that table
+                #with the id, and just insert only, its special case, can have many or one or
+                #none variable line items -- name/value pair.
+                special_delete_variable_line_items(uri, charge_id)
+
+                last_name = charge['last_name']
+                line_items = charge['line_items'].to_json
+                raw_line_items = charge['line_items'][0]
+                raw_line_items['properties'].each do |myitem|
+                    #puts myitem
+                    myname = myitem['name']
+                    myvalue = myitem['value']
+                    if myvalue == "" 
+                        myvalue = nil
+                    end
+                    puts "#{charge_id}: #{myname} -> #{myvalue}"
                     
-                    indy_result = my_conn.exec_prepared('statement2', [ province, city, first_name, last_name, zip, country, address1, address2, company, phone, order_id])
-                    puts indy_result.inspect
-                    puts "&&&&&&&&&&&&&&&&&&"
+                    #create hash for charge_variable_line_items, send to method to determine
+                    #if should update or insert
+
+                    charge_variable_line_items = {"charge_id" => charge_id, "name" => myname, "value" => myvalue}
+                    insert_update_charge_variable_line_items(uri, charge_variable_line_items)
+
+
+                end
+                rescue
+                    puts "We could not handle the variable line items"
+                else
+                    puts "No error with the variable line items"
+                end
+
+                begin
+                
+                grams = raw_line_items['grams']
+                price = raw_line_items['price']
+                if grams.nil?
+                    grams = 0
+                else
+                    grams = grams.to_i
+                end
+                if price.nil?
+                    price = 0.0
+                else
+                    price = price.to_f
+                    price = price.round(2)
+                end
+
+                quantity = raw_line_items['quantity']
+                shopify_product_id = raw_line_items['shopify_product_id']
+                shopify_variant_id = raw_line_items['shopify_variant_id']
+                sku = raw_line_items['sku']
+                subscription_id = raw_line_items['subscription_id']
+                title = raw_line_items['title']
+                variant_title = raw_line_items['variant_title']
+                vendor = raw_line_items['vendor']
+
+                
+                charge_fixed_line_items_hash = {"charge_id" => charge_id, "grams" => grams, "price" => price, "quantity" => quantity, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "subscription_id" => subscription_id, "title" => title, "variant_title" => variant_title, "vendor" => vendor}
+
+                insert_update_charge_fixed_line_items(uri, charge_fixed_line_items_hash)
+                rescue
+                    puts "We had problems inserting or updating fixed line items"
+                else
+                    puts "no errors with updating/inserting fixed line items"
+                end
+
+                begin
+                note = charge['note']
+                note_attributes = charge['note_attributes'].to_json
+                processed_at = charge['processed_at']
+                scheduled_at = charge['scheduled_at']
+                shipments_count = charge['shipments_count']
+                shipping_address = charge['shipping_address'].to_json
+                raw_shipping_address = charge['shipping_address']
+                sa_address1 = raw_shipping_address['address1']
+                sa_address2 = raw_shipping_address['address2']
+                sa_city = raw_shipping_address['city']
+                sa_company = raw_shipping_address['company']
+                sa_country = raw_shipping_address['country']
+                sa_first_name = raw_shipping_address['first_name']
+                sa_last_name = raw_shipping_address['last_name']
+                sa_phone = raw_shipping_address['phone']
+                sa_province = raw_shipping_address['province']
+                sa_zip = raw_shipping_address['zip']
+                
+
+                #construct hash and send to method to determine if insert or update
+                charge_shipping_address_hash = {"charge_id" => charge_id, "address1" => sa_address1, "address2" => sa_address2, "city" => sa_city, "company" => sa_company, "country" => sa_country, "first_name" => sa_first_name, "last_name" => sa_last_name, "phone" => sa_phone, "province" => sa_province, "zip" => sa_zip}
+                insert_update_shipping_address(uri, charge_shipping_address_hash)
+                rescue
+                    puts "Problems inserting/updating shipping address"
+                else
+                    puts "No problems inserting/updating shipping address"
+                end
+
+                begin
+                shipping_lines = charge['shipping_lines'][0]
+                if !shipping_lines.nil?
+                    sl_code = shipping_lines['code']
+                    sl_price = shipping_lines['price'].to_f
+                    sl_price = sl_price.round(2)
+                    sl_source = shipping_lines['source']
+                    sl_title = shipping_lines['title']
+                    sl_tax_lines = shipping_lines['tax_lines'].to_json
+                    sl_carrier_identifier = shipping_lines['carrier_identifier']
+                    sl_request_fulfillment_service_id = shipping_lines['request_fulfillment_service_id']
+                    
+
+                    #construct hash and send to method to check to insert or update
+                    shipping_lines_hash = {"charge_id" => charge_id, "code" => sl_code, "price" => sl_price, "source" => sl_source, "title" => sl_title, "tax_lines" => sl_tax_lines, "carrier_identifier" => sl_carrier_identifier, "request_fulfillment_service_id" => sl_request_fulfillment_service_id}
+
+                    insert_update_shipping_lines(uri, shipping_lines_hash)
+
+
+                end
+                rescue
+                    puts "Problems inserting or updating shipping lines"
+                else
+                    puts "No errors inserting/updating shipping lines"
+                end
+
+                begin
+                shopify_order_id = charge['shopify_order_id']
+                status = charge['status']
+                sub_total = charge['sub_total']
+                sub_total_price = charge['sub_total_price']
+                tags = charge['tags']
+                tax_lines = charge['tax_lines']
+                total_discounts = charge['total_discounts']
+                total_line_items_price = charge['total_line_items_price']
+                total_tax = charge['total_tax']
+                total_weight = charge['total_weight']
+                total_price = charge['total_price']
+                updated_at = charge['updated_at']
+
+                #construct hash, send it to method to either insert or update
+                my_main_charge_hash = {"address_id" => address_id, "billing_address" => billing_address, "client_details" => client_details, "created_at" => created_at, "customer_hash" => customer_hash, "customer_id" => customer_id, "first_name" => first_name, "charge_id" => charge_id, "last_name" => last_name,"line_items" => line_items, "note" => note, "note_attributes" => note_attributes, "processed_at" => processed_at, "scheduled_at" => scheduled_at, "shipments_count" => shipments_count, "shipping_address" => shipping_address, "shopify_order_id" => shopify_order_id, "status" => status, "sub_total" => sub_total, "sub_total_price" => sub_total_price, "tags" => tags,"tax_lines" => tax_lines, "total_discounts" => total_discounts, "total_line_items_price" => total_line_items_price, "total_tax" => total_tax, "total_weight" => total_weight, "total_price" => total_price, "updated_at" => updated_at,  "discount_codes" => discount_codes }
+                puts "Checking for insert or update main charge table"
+                insert_update_main_charge(uri, my_main_charge_hash)
+                rescue
+                    puts "problems inserting or updating main charge record"
+                else
+                    puts "no problems inserting or updating the main charge record"
+                end
+
                 end
             else
                 puts "*******************************"
@@ -1649,126 +1796,234 @@ module EllieHelper
             my_order_line_variable_insert = "insert into order_line_items_variable (order_id, name, value) values ($1, $2, $3)"
             conn.prepare('statement3', "#{my_order_line_variable_insert}") 
             
-            my_order_shipping_insert = "insert into order_shipping_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-            conn.prepare('statement4', "#{my_order_shipping_insert}") 
-    
-            my_order_billing_insert = "insert into order_billing_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-            conn.prepare('statement5', "#{my_order_billing_insert}") 
-           
-    
-            number_orders = num_orders
-            #puts number_orders
-            created_at_min = get_four_months_ago
-            start = Time.now
-            page_size = 250
-            num_pages = (number_orders/page_size.to_f).ceil
-            1.upto(num_pages) do |page|
-                orders = HTTParty.get("https://api.rechargeapps.com/orders?created_at_min=\'#{created_at_min}\'&limit=250&page=#{page}", :headers => header_info)
-                my_orders = orders.parsed_response['orders']
-                my_orders.each do |order|
-                    puts "-------------"
-                    puts order.inspect
-                    puts "-------------"
-                    order.each do |myord|
-                        puts myord.inspect
-                    end
-                    order_id = order['id'] 
-                    transaction_id = order['id']
-                    charge_status = order['charge_status']
-                    payment_processor = order['payment_processor']
-                    address_is_active = order['address_is_active'].to_i
-                    status = order['status']
-                    type = order['type']
-                    charge_id = order['charge_id']
-                    address_id = order['address_id']
-                    shopify_id = order['shopify_id']
-                    shopify_order_id = order['shopify_order_id']
-                    shopify_order_number = order['shopify_order_number']
-                    shopify_cart_token = order['shopify_cart_token']
-                    shipping_date = order['shipping_date']
-                    scheduled_at = order['scheduled_at']
-                    shipped_date = order['shipped_date']
-                    processed_at = order['processed_at']
-                    customer_id = order['customer_id']
-                    first_name = order['first_name']
-                    last_name = order['last_name']
-                    is_prepaid = order['is_prepaid'].to_i
-                    created_at = order['created_at']
-                    updated_at = order['updated_at']
-                    email = order['email']
-                    line_items = order['line_items'].to_json
-                    raw_line_items = order['line_items'][0]
-    
-                    shopify_variant_id = raw_line_items['shopify_variant_id']
-                    title = raw_line_items['title']
-                    variant_title = raw_line_items['variant_title']
-                    subscription_id = raw_line_items['subscription_id']
-                    quantity = raw_line_items['quantity'].to_i
-                    shopify_product_id = raw_line_items['shopify_product_id']
-                    product_title = raw_line_items['product_title']
-                    conn.exec_prepared('statement2', [ order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title ])
-    
-                    
-                    variable_line_items = raw_line_items['properties']
-                    variable_line_items.each do |myprop|
-                        #puts "&&&&&&&&&&&&&&&&&&&"
-                        #puts myprop.inspect
-                        myname = myprop['name']
-                        myvalue = myprop['value']
-                        conn.exec_prepared('statement3', [ order_id, myname, myvalue ])
-                        #puts "^^^^^^^^^^^^^^^^^^^"
-                    end
-    
-    
-    
-                    total_price = order['total_price']
-                    shipping_address = order['shipping_address'].to_json
-                    billing_address = order['billing_address'].to_json
-    
-                    #insert shipping_address sub table
-                    raw_shipping_address = order['shipping_address']
-                    ord_ship_province = raw_shipping_address['province']
-                    ord_ship_city = raw_shipping_address['city']
-                    ord_ship_first_name = raw_shipping_address['first_name']
-                    ord_ship_last_name = raw_shipping_address['last_name']
-                    ord_ship_zip = raw_shipping_address['zip']
-                    ord_ship_country = raw_shipping_address['country']
-                    ord_ship_address1 = raw_shipping_address['address1']
-                    ord_ship_address2 = raw_shipping_address['address2']
-                    ord_ship_company = raw_shipping_address['company']
-                    ord_ship_phone = raw_shipping_address['phone']
-                    conn.exec_prepared('statement4', [ order_id, ord_ship_province, ord_ship_city, ord_ship_first_name, ord_ship_last_name, ord_ship_zip, ord_ship_country, ord_ship_address1, ord_ship_address2, ord_ship_company, ord_ship_phone ])
-    
-                    #insert billing_address sub table
-                    raw_billing_address = order['billing_address']
-                    ord_bill_province = raw_billing_address['province']
-                    ord_bill_city = raw_billing_address['city']
-                    ord_bill_first_name = raw_billing_address['first_name']
-                    ord_bill_last_name = raw_billing_address['last_name']
-                    ord_bill_zip = raw_billing_address['zip']
-                    ord_bill_country = raw_billing_address['country']
-                    ord_bill_address1 = raw_billing_address['address1']
-                    ord_bill_address2 = raw_billing_address['address2']
-                    ord_bill_company = raw_billing_address['company']
-                    ord_bill_phone = raw_billing_address['phone']
-                    conn.exec_prepared('statement5', [ order_id, ord_bill_province, ord_bill_city, ord_bill_first_name, ord_bill_last_name, ord_bill_zip, ord_bill_country, ord_bill_address1, ord_bill_address2, ord_bill_company, ord_bill_phone ])
-    
-                    #insert into orders
-                    conn.exec_prepared('statement1', [order_id, transaction_id, charge_status, payment_processor, address_is_active, status, type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address])
-    
-    
+            my_conn.exec_prepared('statement1', [ address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at,  discount_codes ])
+            puts "inserted charge #{charge_id}"
+        end
+        my_conn.close
+
+    end
+
+    def background_load_full_charges(sleep_recharge, num_charges, header_info, uri)
+        puts "starting FULL download"
+        
+        
+        puts header_info
+        puts uri
+        myuri = URI.parse(uri)
+        my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
+        puts "got here"
+        my_insert = "insert into charges (address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at, discount_codes) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)"
+        my_conn.prepare('statement1', "#{my_insert}")
+
+        my_insert_billing = "insert into charge_billing_address (address1, address2, city, company, country, first_name, last_name, phone, province, zip, charge_id) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement2', "#{my_insert_billing}")
+
+        my_insert_client_details = "insert into charge_client_details (charge_id, browser_ip, user_agent) values ($1, $2, $3)"
+        my_conn.prepare('statement3', "#{my_insert_client_details}")
+
+        my_insert_fixed_line_items = "insert into charge_fixed_line_items (charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement4', "#{my_insert_fixed_line_items}")
+
+        my_insert_variable_line_items = "insert into charge_variable_line_items (charge_id, name, value) values ($1, $2, $3)"
+        my_conn.prepare('statement5', "#{my_insert_variable_line_items}")
+
+        my_insert_charges_shipping_address = "insert into charges_shipping_address (charge_id, address1, address2, city, company, country, first_name, last_name, phone, province, zip) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        my_conn.prepare('statement6', "#{my_insert_charges_shipping_address}")
+
+        my_insert_charges_shipping_lines = "insert into charges_shipping_lines (charge_id, code, price, source, title, tax_lines, carrier_identifier, request_fulfillment_service_id) values ($1, $2, $3, $4, $5, $6, $7, $8)"
+        my_conn.prepare('statement7', "#{my_insert_charges_shipping_lines}") 
+
+        start = Time.now
+        page_size = 250
+        num_pages = (num_charges/page_size.to_f).ceil
+        1.upto(num_pages) do |page|
+            charges = HTTParty.get("https://api.rechargeapps.com/charges?limit=250&page=#{page}", :headers => header_info)
+            my_charges = charges.parsed_response['charges']
+            my_charges.each do |charge|
+                puts "-------------"
+                puts charge.inspect
+                puts "-------------"
+                begin
+                address_id = charge['address_id']
+                raw_billing_address = charge['billing_address']
+                billing_address = charge['billing_address'].to_json
+                billing_address1 = raw_billing_address['address1']
+                billing_address2 = raw_billing_address['address2']
+                billing_address_city = raw_billing_address['city']
+                billing_address_company = raw_billing_address['company']
+                billing_address_country = raw_billing_address['country']
+                billing_address_first_name = raw_billing_address['first_name']
+                billing_address_last_name = raw_billing_address['last_name']
+                billing_address_phone = raw_billing_address['phone']
+                billing_address_province = raw_billing_address['province']
+                billing_address_zip = raw_billing_address['zip']
+
+                   
+
+                client_details = charge['client_details'].to_json
+                raw_client_details = charge['client_details']
+                browser_ip = raw_client_details['browser_ip']
+                user_agent = raw_client_details['user_agent']
+               
+
+
+                created_at = charge['created_at']
+                customer_hash = charge['customer_hash']
+                customer_id = charge['customer_id']
+                discount_codes = charge['discount_codes'].to_json
+                first_name = charge['first_name']
+                charge_id = charge['id']
+                #insert charge_billing_address sub-table
+                if !raw_billing_address.nil?
+                my_conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id ])
                 end
-                puts "*****************************"
-                puts "Done with page #{page}"  
-                current = Time.now
-                duration = (current - start).ceil
-                puts "Been running #{duration} seconds" 
-                puts "Sleeping #{sleep_recharge}"
-                sleep sleep_recharge.to_i             
-    
+                puts "handled billing address"
+
+                if !browser_ip.nil?
+                    my_conn.exec_prepared('statement3', [charge_id, browser_ip, user_agent])
+                end
+
+                last_name = charge['last_name']
+                line_items = charge['line_items'].to_json
+                raw_line_items = charge['line_items'][0]
+                if !raw_line_items.empty?  && !raw_line_items.nil?
+                    raw_line_items['properties'].each do |myitem|
+                        puts myitem
+                        myname = myitem['name']
+                        myvalue = myitem['value']
+                        if myvalue == "" 
+                            myvalue = nil
+                        end
+                        puts "#{charge_id}: #{myname} -> #{myvalue}"
+                        if !myvalue.nil?
+                            my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
+                        end
+                    end
+                
+                
+                
+                grams = raw_line_items['grams']
+                price = raw_line_items['price']
+                end
+            rescue
+                puts "We had an error executing statement5 "
+            else
+                puts "No error here with statement5"
             end
-            puts "All done with FULL order download"
-            conn.close
+
+                if grams.nil?
+                    grams = 0
+                else
+                    grams = grams.to_i
+                end
+                if price.nil?
+                    price = 0.0
+                else
+                    price = price.to_f
+                    price = price.round(2)
+                end
+
+                begin
+                quantity = raw_line_items['quantity']
+                shopify_product_id = raw_line_items['shopify_product_id']
+                shopify_variant_id = raw_line_items['shopify_variant_id']
+                sku = raw_line_items['sku']
+                subscription_id = raw_line_items['subscription_id']
+                title = raw_line_items['title']
+                variant_title = raw_line_items['variant_title']
+                vendor = raw_line_items['vendor']
+
+                my_conn.exec_prepared('statement4', [charge_id, grams, price, quantity, shopify_product_id, shopify_variant_id, sku, subscription_id, title, variant_title, vendor])
+                rescue 
+                    puts "Error executing statement4"
+                else
+                    puts "No errors executing statement4"
+                end
+
+                begin
+                note = charge['note']
+                note_attributes = charge['note_attributes'].to_json
+                processed_at = charge['processed_at']
+                scheduled_at = charge['scheduled_at']
+                shipments_count = charge['shipments_count']
+                shipping_address = charge['shipping_address'].to_json
+                raw_shipping_address = charge['shipping_address']
+                if !raw_shipping_address.nil?
+                sa_address1 = raw_shipping_address['address1']
+                sa_address2 = raw_shipping_address['address2']
+                sa_city = raw_shipping_address['city']
+                sa_company = raw_shipping_address['company']
+                sa_country = raw_shipping_address['country']
+                sa_first_name = raw_shipping_address['first_name']
+                sa_last_name = raw_shipping_address['last_name']
+                sa_phone = raw_shipping_address['phone']
+                sa_province = raw_shipping_address['province']
+                sa_zip = raw_shipping_address['zip']
+                my_conn.exec_prepared('statement6', [charge_id, sa_address1, sa_address2, sa_city, sa_company, sa_country, sa_first_name, sa_last_name, sa_phone, sa_province, sa_zip])
+                end
+                puts "handled shipping address"
+            rescue
+                puts "Error in statement6"
+            else
+                puts "No error in statement6" 
+            end
+
+                begin
+                shipping_lines = charge['shipping_lines'][0]
+                if !shipping_lines.nil?
+                    sl_code = shipping_lines['code']
+                    sl_price = shipping_lines['price'].to_f
+                    sl_price = sl_price.round(2)
+                    sl_source = shipping_lines['source']
+                    sl_title = shipping_lines['title']
+                    sl_tax_lines = shipping_lines['tax_lines'].to_json
+                    sl_carrier_identifier = shipping_lines['carrier_identifier']
+                    sl_request_fulfillment_service_id = shipping_lines['request_fulfillment_service_id']
+                    my_conn.exec_prepared('statement7', [charge_id, sl_code, sl_price, sl_source, sl_title, sl_tax_lines, sl_carrier_identifier, sl_request_fulfillment_service_id])
+                end
+
+            rescue
+                puts "Error in statement7"
+
+            else
+                puts "No error in statement7"
+            end
+
+            begin
+                shopify_order_id = charge['shopify_order_id']
+                status = charge['status']
+                sub_total = charge['sub_total']
+                sub_total_price = charge['sub_total_price']
+                tags = charge['tags']
+                tax_lines = charge['tax_lines']
+                total_discounts = charge['total_discounts']
+                total_line_items_price = charge['total_line_items_price']
+                total_tax = charge['total_tax']
+                total_weight = charge['total_weight']
+                total_price = charge['total_price']
+                updated_at = charge['updated_at']
+
+                puts "ready to insert main record"
+
+                my_conn.exec_prepared('statement1', [ address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at,  discount_codes ])
+
+            rescue
+                puts "Error statement1"
+            else
+                puts "No error in statement1"
+            end
+
+
+                end
+
+            
+            
+            current = Time.now
+            duration = (current - start).ceil
+            puts "Running #{duration} seconds"
+            puts "Done with page #{page}"
+            puts "Sleeping #{sleep_recharge}"
+            sleep sleep_recharge.to_i
         end
     
     
