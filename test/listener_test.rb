@@ -24,4 +24,24 @@ class ListenerTest < Test::Unit::TestCase
     assert last_response.ok?
   end
 
+  def test_customer_index_returns_max_results
+    get '/customers'
+    assert last_response.ok?
+    customer_list = JSON.parse last_response.body
+    assert customer_list.length <= 250
+  end
+
+  def test_customers_match_recharge_api
+    customer = Customer.last
+    file = File.open "#{File.dirname __FILE__}/../docs/customer_example.json", 'r'
+    example_json = file.read
+    logger.debug example_json
+    example = JSON.parse example_json
+    get "/customers/#{customer.customer_id}"
+    logger.debug last_response.body
+    response = JSON.parse last_response.body
+    logger.debug response
+    assert example['customer'].keys == response.keys
+  end
+
 end
