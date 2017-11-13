@@ -55,9 +55,10 @@ class RechargeAPI
 
   # TODO
   def self.skip!(subscription_id, charge_id)
+    sub = Subscription.find(subscription_id)
+    return false if sub.prepaid?
     body = {subscription_id: subscription_id}
-    res = RechargeAPI.post("/charges/#{charge_id}/skip", body: body.to_json)
-    res.success?
+    RechargeAPI.post("/charges/#{charge_id}/skip", body: body.to_json)
   end
 end
 

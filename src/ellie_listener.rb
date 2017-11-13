@@ -223,9 +223,14 @@ class EllieListener < Sinatra::Base
 
   post '/subscription/:subscription_id/skip' do |subscription_id|
     sub = Subscription.find subscription_id
-    return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
-    orders = sub.orders
-
+    return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil? && !sub.prepaid?
+    res = Subscription.async.skip! subscription_id
+    # FIXME: currently does not allow skipping prepaid subscriptions
+    if res
+      [200, @default_headers, '']
+    else
+      [500, @default_headers, {error: 'error processing skip'}.to_json]
+    end
   end
 
   # demo endpoints for customers
@@ -237,13 +242,25 @@ class EllieListener < Sinatra::Base
   end
 
   get '/customers/:customer_id' do |customer_id|
-    customer = Customer.find(customer_id)
+    customer = Customer.find(customer_id).recharge_update
     output = customer.as_recharge.to_json
     [200, @default_headers, output]
   end
 
   put '/customer/:customer_id' do |customer_id|
-    customer = Customer.find(customer_id)
+    json = JSON.parse request.body
+    json['customer_id'] = customer_id
+    res = Customer.async.update_recharge(json)
+    customer = Customer.from_recharge(json)
+    if res && customer.errors.empty?
+      [200, @default_headers, customer.as_recharge.to_json]
+    else
+      error = {
+        error: 'invalid customer data',
+        details: customer.errors
+      }
+      [400, @default_headers, error.to_json]
+    end
   end
 
 

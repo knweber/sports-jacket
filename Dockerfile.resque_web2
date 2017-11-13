@@ -1,7 +1,8 @@
-# Set the base image to Debian:wheezy
-FROM debian:jessie
+FROM debian:stretch
 #FROM ruby
 MAINTAINER FAMBRANDS
+
+EXPOSE 5678
 
 # Install wget, sox and flite
 RUN apt-get update && \
@@ -12,7 +13,6 @@ RUN apt-get update && \
     apt-get clean -y
 
 ENTRYPOINT ["resque-web", "-FL"]
-EXPOSE 5678
 
 CMD ["-h"]
 

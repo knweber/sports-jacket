@@ -171,12 +171,39 @@ class Subscription < ActiveRecord::Base
 
   attr_accessor :sync_recharge
 
+  # skips the given subscription_id
+  def self.skip!(subscription_id)
+    charges = Charge.by_subscription_id subscription_id
+    results = charges.each do |charge|
+      res = RechargeAPI.skip!(charge.charge_id, subscription_id)
+      Subscription.recharge_read subscription_id if res.success?
+      charge.update(Charge.from_recharge(res.parsed_body['charge']))
+      res.success?
+    end
+    results.all?
+  end
+
   def initialize(*_args)
     @sync_recharge = false
   end
 
   def prepaid?
     PREPAID_PRODUCTS.pluck(:id).include? shopify_product_id
+  end
+
+  def skip!
+    Subscription.skip! subscription_id
+  end
+
+  def charges
+    Charge.by_subscription_id subscription_id
+  end
+
+  def next_charge(time = nil)
+    time ||= Time.current
+    charges.where('scheduled_at > ?', time)
+      .order(scheduled_at: :asc)
+      .first
   end
 
   def shipping_at
@@ -458,7 +485,7 @@ class Charge < ActiveRecord::Base
   end
 
   def self.by_subscription_id(subscription_id)
-    where('line_items @> \'[{"subscription_id": ?}]\'', subscription_id)
+    where("line_items @> \'[{\"subscription_id\": #{subscription_id.to_i}}]\'")
   end
 
 
