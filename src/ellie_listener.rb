@@ -77,7 +77,7 @@ class EllieListener < Sinatra::Base
     query = URI.escape(h.sort.collect{|k,v| "#{k}=#{v}"}.join('&'))
     digest = OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha256'), @secret, query)
 
-    if not (hmac == digest)
+    unless hmac == digest
       return [403, "Authentication failed. Digest provided was: #{digest}"]
     end
 
@@ -97,7 +97,7 @@ class EllieListener < Sinatra::Base
       if response.code == 200
         @tokens[shop] = response['access_token']
       else
-        return [500, "Something went wrong."]
+        return [500, 'Something went wrong.']
       end
     end
 

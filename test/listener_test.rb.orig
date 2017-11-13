@@ -24,6 +24,7 @@ class ListenerTest < Test::Unit::TestCase
     assert last_response.ok?
   end
 
+<<<<<<< HEAD
   def test_it_updates_a_subscription
     sub = Subscription.last
     put "/subscriptions/#{sub.subscription_id}", shopify_id: 'silly value'
@@ -55,7 +56,7 @@ class ListenerTest < Test::Unit::TestCase
     assert last_response.ok?
     json = JSON.parse(last_response.body)
     assert_equal example_json['customer'].keys.sort, json.keys.sort, 'output did not match recharge API'
-
+=======
   def test_customer_index_returns_max_results
     get '/customers'
     assert last_response.ok?
@@ -74,6 +75,7 @@ class ListenerTest < Test::Unit::TestCase
     response = JSON.parse last_response.body
     logger.debug response
     assert example['customer'].keys == response.keys
+>>>>>>> a62bb2360079cd1bc8a9d8908217f61fb4f3092c
   end
 
 end

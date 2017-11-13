@@ -1,8 +1,11 @@
 Layout/SpaceInsideHashLiteralBraces:
   Enabled: false
 
+<<<<<<< HEAD
+=======
 Metrics/AbcSize:
   Enabled: false
 
+>>>>>>> a62bb2360079cd1bc8a9d8908217f61fb4f3092c
 Metrics/LineLength:
   Max: 100
