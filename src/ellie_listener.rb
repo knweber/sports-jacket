@@ -89,7 +89,8 @@ class EllieListener < Sinatra::Base
       payload = {
         client_id: @key,
         client_secret: @secret,
-        code: code}
+        code: code
+      }
 
       response = HTTParty.post(url, body: payload)
 
@@ -125,6 +126,14 @@ class EllieListener < Sinatra::Base
   get '/subscriptions' do
   end
 
+  get '/subscription/:subscription_id/sizes' do |subscription_id|
+    sub = Subscription.find subscription_id
+    #sub = Subscription.limit(200).sample
+    [404, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
+    [200, @default_headers, sub.sizes.to_json]
+  end
+
+
   get '/subscriptions/meta' do 
     shopify_id = params['shopify_id']
     logger.debug params.inspect
@@ -158,7 +167,7 @@ class EllieListener < Sinatra::Base
     [200, @default_headers, subscription.to_json]
   end
 
-  put '/subscription/:subscription_id/size' do |subscription_id|
+  put '/subscription/:subscription_id/sizes' do |subscription_id|
     # body parsing and validation
     begin
       json = JSON.parse request.body.read
@@ -224,7 +233,7 @@ class EllieListener < Sinatra::Base
   post '/subscription/:subscription_id/skip' do |subscription_id|
     sub = Subscription.find subscription_id
     return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil? && !sub.prepaid?
-    res = Subscription.async.skip! subscription_id
+    res = Subscription.async :skip!, subscription_id
     # FIXME: currently does not allow skipping prepaid subscriptions
     if res
       [200, @default_headers, '']
@@ -242,7 +251,8 @@ class EllieListener < Sinatra::Base
   end
 
   get '/customers/:customer_id' do |customer_id|
-    customer = Customer.find(customer_id).recharge_update
+    customer = Customer.find(customer_id)
+    customer.recharge_update!
     output = customer.as_recharge.to_json
     [200, @default_headers, output]
   end
@@ -251,7 +261,7 @@ class EllieListener < Sinatra::Base
     json = JSON.parse request.body
     json['customer_id'] = customer_id
     res = Customer.async.update_recharge(json)
-    customer = Customer.from_recharge(json)
+    customer = Customer.from_recharge json
     if res && customer.errors.empty?
       [200, @default_headers, customer.as_recharge.to_json]
     else

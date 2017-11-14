@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171110215720) do
+ActiveRecord::Schema.define(version: 20171113231955) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -93,6 +93,7 @@ ActiveRecord::Schema.define(version: 20171110215720) do
     t.jsonb "raw_line_items", default: [], null: false
     t.jsonb "raw_shipping_lines", default: [], null: false
     t.string "browser_ip"
+    t.string "subscription_id"
     t.index ["address_id"], name: "index_charges_on_address_id"
     t.index ["charge_id"], name: "index_charges_on_charge_id"
     t.index ["customer_id"], name: "index_charges_on_customer_id"

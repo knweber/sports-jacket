@@ -15,6 +15,9 @@ queue when invoked.
 For development:
 `docker build -t pull .`
 
+## Running the Tests
+`rake test`
+
 ## Running the Container
 ```bash
 ./docker_run.sh <development | production>
@@ -31,7 +34,7 @@ For development:
 Returns a list of subscriptions. Filters currently match the
 [Recharge API](https://developer.rechargepayments.com/#list-subscriptions).
 
-### `PUT /subscriptions/:sbuscription_id`
+### `PUT /subscriptions/:subscription_id`
 
 Updates a subscription. Only the fields provided in the body will be updated.
 The rest are left alone.
@@ -39,7 +42,7 @@ The rest are left alone.
 Returns the resulting full subscription data. [Example
 output.](docs/subscription_example.json)
 
-### `GET /subscriptions/<subscription_id>`
+### `GET /subscriptions/:subscription_id`
 
 Returns a single subscription.
 [Example output.](docs/subscription_example.json)
@@ -62,6 +65,7 @@ Example output:
 ### `PUT /subscriptions/:subscription_id/sizes`
 
 Updates the sizes of the given subscription ID. Takes a json object keyed by the
+
 product type with the value of the new size.Returns the complete set of
 sizes from the subscription.
 

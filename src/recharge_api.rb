@@ -53,13 +53,6 @@ class RechargeAPI
     end
   end
 
-  # TODO
-  def self.skip!(subscription_id, charge_id)
-    sub = Subscription.find(subscription_id)
-    return false if sub.prepaid?
-    body = {subscription_id: subscription_id}
-    RechargeAPI.post("/charges/#{charge_id}/skip", body: body.to_json)
-  end
 end
 
 module RechargeActiveRecordInclude
@@ -67,15 +60,15 @@ module RechargeActiveRecordInclude
     base.extend(ClassMethods)
   end
 
-  def recharge_update
+  def recharge_update!
     self.class.recharge_update(as_recharge)
   end
 
-  def recharge_create
+  def recharge_create!
     self.class.recharge_create(as_recharge)
   end
 
-  def recharge_delete
+  def recharge_delete!
     self.class.recharge_delete(as_recharge)
   end
 
@@ -111,7 +104,7 @@ module RechargeActiveRecordInclude
       res = RechargeAPI.get("/#{name.tableize}/#{id}")
       return unless res.success?
       parsed = res.parsed_response[name.underscore]
-      mapped = map_in(parsed)#.reject { |_, v| v.nil? }
+      mapped = map_in(parsed)
       existing_record = find(id)
       logger.debug "parsed: #{parsed}"
       logger.debug "mapped in: #{mapped}"

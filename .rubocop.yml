@@ -6,3 +6,9 @@ Metrics/AbcSize:
 
 Metrics/LineLength:
   Max: 100
+
+Layout/MultilineMethodCallIndentation:
+  Enabled: False
+
+Style/TrailingCommaInLiteral:
+  Enabled: False
