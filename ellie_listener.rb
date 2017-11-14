@@ -9,7 +9,16 @@ require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
 require_relative 'models/model'
+<<<<<<< HEAD
 #require_relative 'recharge_api'
+=======
+<<<<<<< HEAD
+#require_relative 'recharge_api'
+require_relative "resque_helper"
+=======
+require_relative 'recharge_api'
+>>>>>>> 057f34848aeed32b449f7af81b3785a76ac8e766
+>>>>>>> 47e2630ffdcda1e5911a4a34b8179139457407f1
 require_relative 'logging'
 require_relative "resque_helper"
 
@@ -31,7 +40,9 @@ class EllieListener < Sinatra::Base
     @tokens = {}
     @key = ENV['SHOPIFY_API_KEY']
     @secret = ENV['SHOPIFY_SHARED_SECRET'] 
-    @app_url = "efd197f6.ngrok.io"
+
+
+    @app_url = "ellieactivesupport.com"
     @default_headers = {"Content-Type" => "application/json"}
     @recharge_token = ENV['RECHARGE_ACCESS_TOKEN']
     @recharge_change_header = {
@@ -39,7 +50,10 @@ class EllieListener < Sinatra::Base
       "Accept" => "application/json",
       "Content-Type" =>"application/json"
     }
-    
+
+    @app_url = "ellieactivesupport.com"
+    @default_headers = {"Content-Type" => "application/json"}
+
     super
   end
 
@@ -118,13 +132,22 @@ class EllieListener < Sinatra::Base
     if shopify_id.nil?
       return [400, JSON.generate({error: 'shopify_id required'})]
     end
+
+
     data = Customer.joins(:subscriptions)
       .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
       .subscriptions
+
+    #subscriptions = Recharge.subscriptions_by_shopify_id shopify_id
+    data = Customer.joins(:subscriptions)
+      .where(shopify_customer_id: shopify_id)
+      .collect(&:subscriptions)
+      .flatten
       .map{|sub| [sub, sub.orders]}
     output = data.map{|i| transform_subscriptions(*i)}
     [200, @default_headers, JSON.generate(output)]
   end
+
 
   post '/subscriptions' do
     json = JSON.parse request.body.read
@@ -140,6 +163,7 @@ class EllieListener < Sinatra::Base
     [200, @default_headers, JSON.generate(output)]
   end
 
+
   private
 
   def transform_subscriptions(sub, orders)
@@ -148,19 +172,31 @@ class EllieListener < Sinatra::Base
       shopify_product_id: sub.shopify_product_id.to_i,
       subscription_id: sub.subscription_id.to_i,
       product_title: sub.product_title,
+
+
       next_charge: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
       charge_date: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
+
+      next_charge: sub.next_charge_scheduled_at.strftime('%Y-%m-%d'),
+      charge_date: sub['next_charge_scheduled_at'].strftime('%Y-%m-%d'),
       sizes: sub.line_items
         .select {|l| l.size_property?}
         .map{|p| [p['name'], p['value']]}
         .to_h,
       prepaid: sub.prepaid?,
+
       prepaid_shipping_at: sub.shipping_at.try{|time| time.strftime('%Y-%m-%d')},
     }
   end
 
+  
+
   put "/subscription_switch" do
-    myjson = JSON.parse(request.body.read)
+    puts "Received stuff"
+    puts params.inspect
+    puts "----------"
+    myjson = params  
+    #myjson = JSON.parse(request.body.read)
     myjson['recharge_change_header'] = @recharge_change_header
     puts myjson.inspect
     my_action = myjson['action']
@@ -216,5 +252,7 @@ class EllieListener < Sinatra::Base
 
     end
   end
+
+
 
 end
