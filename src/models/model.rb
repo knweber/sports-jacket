@@ -27,6 +27,7 @@ class Subscription < ActiveRecord::Base
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
   ].freeze
 
+  #for changing sizes
   CURRENT_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
@@ -35,6 +36,13 @@ class Subscription < ActiveRecord::Base
     { id: '9109818066', title: 'VIP 3 Month Box' },
     { id: '10016265938', title: 'Ellie 3- Pack: ' },
     { id: '10870682450', title: 'Fit to Be Seen Ellie 3- Pack' },
+  ].freeze
+
+  #for skips/alternates
+  SKIPPABLE_PRODUCTS = [
+    { id: '8204555081', title: 'Monthly Box' },
+    { id: '10016265938', title: 'Ellie 3- Pack: ' }
+    
   ].freeze
 
   # Defines the relationship between the local database table and the remote

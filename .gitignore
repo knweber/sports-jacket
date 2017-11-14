@@ -1,2 +1,6 @@
 .env*
 .rake_tasks~
+/log_file*
+/error*
+._*
+/resque.pid

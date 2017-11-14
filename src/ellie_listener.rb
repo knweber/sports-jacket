@@ -133,7 +133,7 @@ class EllieListener < Sinatra::Base
     data = Customer.joins(:subscriptions)
       .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
       .subscriptions
-      .where(product_id: Subscription::CURRENT_PRODUCTS.pluck(:id))
+      .where(status: 'ACTIVE', shopify_product_id: Subscription::CURRENT_PRODUCTS.pluck(:id))
       .map{|sub| [sub, sub.orders]}
     output = data.map{|i| transform_subscriptions(*i)}
     [200, @default_headers, output.to_json]

@@ -70,7 +70,7 @@ module EllieHelper
         1.upto(num_pages) do |page|
           customers = HTTParty.get("https://api.rechargeapps.com/customers?limit=250&page=#{page}", :headers => my_header)
           my_customers = customers.parsed_response['customers']
-          logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{customers.pretty_inspect}"
+          #logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{customers.pretty_inspect}"
           my_customers.each do |mycust|
             logger.debug 
             customer_id = mycust['id']
@@ -91,7 +91,7 @@ module EllieHelper
             billing_phone = mycust['billing_phone']
             processor_type = mycust['processor_type']
             status = mycust['status']
-            my_conn.exec_prepared('statement1', [customer_id, customer_hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
+            my_conn.exec_prepared('statement1', [customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
     
           end
           logger.info "Done with page #{page}"
@@ -134,7 +134,7 @@ module EllieHelper
         1.upto(num_pages) do |page|
           customers = HTTParty.get("https://api.rechargeapps.com/customers?limit=250&page=#{page}", :headers => my_header)
           my_customers = customers.parsed_response['customers']
-          logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{my_customers.pretty_inspect}"
+          #logger.debug "#{'#' * 5} CUSTOMERS #{'#' * 40}\n#{my_customers.pretty_inspect}"
           my_customers.each do |mycust|
             customer_id = mycust['id']
             hash = mycust['hash']
@@ -315,7 +315,7 @@ module EllieHelper
         1.upto(num_pages) do |page|
           charges = HTTParty.get("https://api.rechargeapps.com/charges?updated_at_min=#{updated_at_min}&limit=250&page=#{page}", :headers => header_info)
           my_charges = charges.parsed_response['charges']
-          logger.debug "#{'#' * 5} CHARGES #{'#' * 40}\n#{my_charges.pretty_inspect}"
+          #logger.debug "#{'#' * 5} CHARGES #{'#' * 40}\n#{my_charges.pretty_inspect}"
           my_charges.each do |charge|
             address_id = charge['address_id']
             raw_billing_address = charge['billing_address']
