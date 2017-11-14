@@ -22,4 +22,4 @@ RUN bundle install --deployment
 ADD Rakefile config config.ru /app/
 ADD src /app/src
 
-ENTRYPOINT rackup
+ENTRYPOINT ["rackup"]
