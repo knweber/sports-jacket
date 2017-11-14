@@ -12,6 +12,7 @@ require 'sinatra/activerecord'
 require_relative 'models/model'
 require_relative 'recharge_api'
 require_relative 'logging'
+require_relative 'resque_helper'
 
 class HandlerError < StandardError
   DEFAULT_HEADERS = {}
@@ -271,6 +272,23 @@ class EllieListener < Sinatra::Base
       }
       [400, @default_headers, error.to_json]
     end
+  end
+
+  put '/subscription_switch' do
+    puts 'Received stuff'
+    puts params.inspect
+    puts '----------'
+    myjson = params  
+    #myjson = JSON.parse(request.body.read)
+    myjson['recharge_change_header'] = @recharge_change_header
+    puts myjson.inspect
+    my_action = myjson['action']
+    if my_action == 'switch_product'
+      Resque.enqueue(SubscriptionSwitch, myjson)
+    else
+      puts "Can't switch product, action must be switch product not #{my_action}"
+    end
+
   end
 
 
