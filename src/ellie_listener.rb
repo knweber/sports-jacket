@@ -306,9 +306,11 @@ class EllieListener < Sinatra::Base
     if shopify_id.nil?
       return [400, @default_headers, JSON.generate(error: 'shopify_id required')]
     end
-    next_charge_sql = 'next_charge_scheduled_at > ? AND next_charge_scheduled_at < ?'
-    data = Customer.joins(:subscriptions)
+    customer = Customer.joins(:subscriptions)
       .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
+    return [404, @default_headers, {error: 'customer not found'}] if customer.nil?
+    next_charge_sql = 'next_charge_scheduled_at > ? AND next_charge_scheduled_at < ?'
+    data = customer
       .subscriptions
       .skippable_products
       .where(status: 'ACTIVE')
