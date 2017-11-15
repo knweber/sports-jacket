@@ -9,6 +9,8 @@ require 'resque/tasks'
 
 require_relative 'src/get_ellie_info'
 require_relative 'src/models/model'
+require_relative 'src/ellie_listener'
+require_relative 'src/resque_helper'
 
 Resque.logger =
   if ENV['production']
