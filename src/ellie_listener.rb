@@ -288,6 +288,31 @@ class EllieListener < Sinatra::Base
 
   end
 
+  get '/skippable_subscriptions' do
+    shopify_id = params['shopify_id']
+    logger.debug params.inspect
+    if shopify_id.nil?
+      return [400, @default_headers, JSON.generate(error: 'shopify_id required')]
+    end
+    next_charge_sql = 'next_charge_scheduled_at > ? AND next_charge_scheduled_at < ?'
+    data = Customer.joins(:subscriptions)
+      .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
+      .subscriptions
+      .where({
+        status: 'ACTIVE',
+        shopify_product_id: Subscription::SKIPPABLE_PRODUCTS.pluck(:id),
+      })
+      .where(next_charge_sql, Date.today.beginning_of_month, Date.today.end_of_month)
+    output = data.map do |sub|
+      {
+        subscription_id: sub.subscription_id,
+        shopify_product_title: sub.product_title,
+        shopify_product_id: sub.shopify_product_id,
+      }
+    end
+    [200, @default_headers, output.to_json]
+  end
+
 
   private
 
