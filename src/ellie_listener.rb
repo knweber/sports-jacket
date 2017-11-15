@@ -230,11 +230,12 @@ class EllieListener < Sinatra::Base
 
   post '/subscription/:subscription_id/skip' do |subscription_id|
     sub = Subscription.find subscription_id
-    return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil? && !sub.prepaid?
-    res = Subscription.async :skip!, subscription_id
+    return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
+    skip_res = sub.skip
+    queue_res = Subscription.async :skip!, subscription_id
     # FIXME: currently does not allow skipping prepaid subscriptions
-    if res
-      [200, @default_headers, '']
+    if queue_res
+      [200, @default_headers, {skipped: skip_res, subscription: sub.as_recharge}.to_json]
     else
       [500, @default_headers, {error: 'error processing skip'}.to_json]
     end

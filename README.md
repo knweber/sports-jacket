@@ -104,3 +104,28 @@ Example:
   "sports-jacket": "S",
 }
 ```
+
+### `POST /subscription/:subscription_id/skip`
+
+Skips the subscription forward 1 month if the subscription is able to be
+skipped. The update to Recharge is queued for background processing. The
+subscription object returned is an optimistic representation of the final state
+of the subscription.
+
+Example Request:
+```json
+{
+  "action": "skip_month",
+  "shopify_customer_id": "123456789",
+  "reason": "other"
+}
+```
+
+Returns:
+```json
+{
+  "skipped": true,
+  "subscription": {...}
+}
+```
+

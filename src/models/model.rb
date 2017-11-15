@@ -42,8 +42,10 @@ class Subscription < ActiveRecord::Base
   SKIPPABLE_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '10016265938', title: 'Ellie 3- Pack: ' }
-    
   ].freeze
+
+  scope :skippable, -> { where shopify_product_id: SKIPPABLE_PRODUCTS.pluck(:id), status: 'ACTIVE' }
+  scope :current, -> { where shopify_product_id: CURRENT_PRODUCTS.pluck(:id), status: 'ACTIVE' }
 
   # Defines the relationship between the local database table and the remote
   # Recharge data format
@@ -176,14 +178,14 @@ class Subscription < ActiveRecord::Base
     ].freeze
   end
 
-  # skips the given subscription_id
+  # skips the given subscription_id immeadiately
+  # returns the updated active record object.
   def self.skip!(subscription_id)
     sub = Subscription.find(subscription_id)
     # do not allow skips if after the 4th of the month
-    return false if sub.prepaid? || Date.today.day > 4
-    sub.next_charge_scheduled_at += 1.month
+    res = sub.skip
+    return unless res[0]
     sub.recharge_update!
-    sub.save
   end
 
   def prepaid?
@@ -195,8 +197,18 @@ class Subscription < ActiveRecord::Base
     charges.where('scheduled_at > ?', time).count.positive?
   end
 
-  def skip!
-    Subscription.skip! subscription_id
+  # returns a 2 element array. The first element indecateds if the subscription
+  # can be successfully skipped. The second element is the unsaved active record
+  # object with the new `next_charge_scheduled_at`
+  def skip
+    skip_conditions = [
+      !prepaid?,
+      Date.today.day < 5,
+      SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
+    ]
+    return false if skip_conditions.all?
+    self.next_charge_scheduled_at += 1.month
+    true
   end
 
   #def charges
