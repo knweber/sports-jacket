@@ -34,7 +34,7 @@ For development:
 Returns a list of subscriptions. Filters currently match the
 [Recharge API](https://developer.rechargepayments.com/#list-subscriptions).
 
-### `PUT /subscriptions/:subscription_id`
+### `PUT /subscription/:subscription_id`
 
 Updates a subscription. Only the fields provided in the body will be updated.
 The rest are left alone.
@@ -42,13 +42,13 @@ The rest are left alone.
 Returns the resulting full subscription data. [Example
 output.](docs/subscription_example.json)
 
-### `GET /subscriptions/:subscription_id`
+### `GET /subscription/:subscription_id`
 
 Returns a single subscription.
 [Example output.](docs/subscription_example.json)
 
 
-### `GET /subscriptions/:subscription_id/sizes`
+### `GET /subscription/:subscription_id/sizes`
 
 Returns the sizes of the given subscription ID.
 
@@ -135,3 +135,22 @@ Returns:
 }
 ```
 
+### `GET /skippable_subscriptions?shopify_id=12345678`
+
+Returns a list of active subscriptions what have a `product_id` that is able to be
+skipped or have an alternate product chosen for it.
+
+Example return:
+```json
+[
+    {
+        "next_charge_scheduled_at": "2017-11-27", 
+        "shopify_product_id": "10016265938", 
+        "shopify_product_title": "Ellie 3- Pack", 
+        "skippable": false, 
+        "subscription_id": "7671575",
+        "can_choose_alt_product": true,
+    }, 
+    ...
+]
+```

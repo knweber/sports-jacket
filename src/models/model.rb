@@ -44,8 +44,8 @@ class Subscription < ActiveRecord::Base
     { id: '10016265938', title: 'Ellie 3- Pack: ' }
   ].freeze
 
-  scope :skippable, -> { where shopify_product_id: SKIPPABLE_PRODUCTS.pluck(:id), status: 'ACTIVE' }
-  scope :current, -> { where shopify_product_id: CURRENT_PRODUCTS.pluck(:id), status: 'ACTIVE' }
+  scope :skippable_products, -> { where shopify_product_id: SKIPPABLE_PRODUCTS.pluck(:id) }
+  scope :current_products, -> { where shopify_product_id: CURRENT_PRODUCTS.pluck(:id), status: 'ACTIVE' }
 
   # Defines the relationship between the local database table and the remote
   # Recharge data format
@@ -194,19 +194,27 @@ class Subscription < ActiveRecord::Base
 
   def active?(time = nil)
     time ||= Time.current
-    charges.where('scheduled_at > ?', time).count.positive?
+    charges.where('scheduled_at > ?', time).count.positive? &&
+      active == 'ACTIVE'
+  end
+
+  def skippable?
+    skip_conditions = [
+      !prepaid?,
+      active?,
+      Date.today.day < 5,
+      SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
+      next_charge_scheduled_at.try('>', Date.today.beginning_of_month),
+      next_charge_scheduled_at.try('<', Date.today.end_of_month),
+    ]
+    skip_conditions.all?
   end
 
   # returns a 2 element array. The first element indecateds if the subscription
   # can be successfully skipped. The second element is the unsaved active record
   # object with the new `next_charge_scheduled_at`
   def skip
-    skip_conditions = [
-      !prepaid?,
-      Date.today.day < 5,
-      SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
-    ]
-    return false if skip_conditions.all?
+    return [false, self] unless skippable?
     self.next_charge_scheduled_at += 1.month
     true
   end
