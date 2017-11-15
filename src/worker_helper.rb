@@ -165,7 +165,7 @@ module EllieHelper
                 logger.debug indy_result.inspect
               end
             else
-              logger.ingo "Need to insert a new record"
+              logger.info "Need to insert a new record"
               logger.info "inserting #{customer_id}, #{first_name} #{last_name}"
               ins_result = my_conn.exec_prepared('statement1', [customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
               logger.debug ins_result.inspect
