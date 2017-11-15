@@ -110,7 +110,9 @@ Example:
 Skips the subscription forward 1 month if the subscription is able to be
 skipped. The update to Recharge is queued for background processing. The
 subscription object returned is an optimistic representation of the final state
-of the subscription.
+of the subscription. `skipped` indicates whether the subscription was
+successfully skipped. `subscription` is a subscription object with the
+`next_scheduled_charge_date` optimistically updated.
 
 Example Request:
 ```json
@@ -125,7 +127,11 @@ Returns:
 ```json
 {
   "skipped": true,
-  "subscription": {...}
+  "subscription": {
+    ...
+    "next_scheduled_charge_date": "2017-06-18",
+    ...
+  }
 }
 ```
 
