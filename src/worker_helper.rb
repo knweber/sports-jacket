@@ -521,11 +521,11 @@ module EllieHelper
         if !temp_result.num_tuples.zero?
           logger.warn "Found existing charge_billing_address record. Updating existing record."
           temp_result.each do |myrow|
-            @logger.debug myrow.inspect
+            logger.debug myrow.inspect
             charge_id = myrow['charge_id']
-            @logger.debug "Charge ID #{charge_id}"
+            logger.debug "Charge ID #{charge_id}"
             indy_result = my_conn.exec_prepared('statement2', [billing_address1, billing_address2, billing_address_city, billing_address_company, billing_address_country, billing_address_first_name, billing_address_last_name, billing_address_phone, billing_address_province, billing_address_zip, charge_id])
-            @logger.debug indy_result.inspect
+            logger.debug indy_result.inspect
           end
         else
           logger.warn "Charge_billing_address Record does not exist, inserting"
@@ -1014,7 +1014,8 @@ module EllieHelper
         logger.info "Getting count of partial orders, since yesterday #{updated_at_min}"
         order_count = HTTParty.get("https://api.rechargeapps.com/orders/count?updated_at_min=\'#{updated_at_min}\'", :headers => header_info)
         my_count = order_count.parsed_response
-        my_count = JSON.parse(my_count)
+        puts my_count
+        #my_count = JSON.parse(my_count)
         num_orders = my_count['count'].to_i
         return num_orders
       end
