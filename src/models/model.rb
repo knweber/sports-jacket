@@ -19,6 +19,8 @@ class Subscription < ActiveRecord::Base
   has_many :orders, through: :order_line_items
   has_and_belongs_to_many :charges, join_table: 'charge_fixed_line_items'
 
+  validates :next_charge_scheduled_at, if: :skippable?, on: :update
+
   after_save :update_line_items
 
   PREPAID_PRODUCTS = [
@@ -27,7 +29,7 @@ class Subscription < ActiveRecord::Base
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
   ].freeze
 
-  #for changing sizes
+  # for changing sizes
   CURRENT_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
@@ -38,7 +40,7 @@ class Subscription < ActiveRecord::Base
     { id: '10870682450', title: 'Fit to Be Seen Ellie 3- Pack' },
   ].freeze
 
-  #for skips/alternates
+  # for skips/alternates
   SKIPPABLE_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '10016265938', title: 'Ellie 3- Pack: ' }

@@ -120,11 +120,14 @@ module RechargeActiveRecordInclude
     def recharge_update(obj, given_options = {})
       default_options = { persist: true }
       options = default_options.merge given_options
-      res = RechargeAPI.put("/#{name.tableize}/#{obj[:id]}", body: obj.to_json)
+      url = "/#{name.tableize}/#{obj[:id]}"
+      puts "recharge update with url: #{url}"
+      logger.debug "recharge update with url: #{url}"
+      res = RechargeAPI.put(url, body: obj.to_json)
       return unless res.success? && options[:persist]
       parsed = res.parsed_response[name.underscore]
       logger.debug "Recharge sent: #{res.inspect}"
-      puts "Recharge sent: #{res.inspect}"
+      puts "Recharge sent: #{parsed.inspect}"
       find(parsed[:id]).update(map_in(obj))
     end
 

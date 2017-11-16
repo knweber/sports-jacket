@@ -1,15 +1,18 @@
-FROM ruby:2.4.0
-
-MAINTAINER FamBrands
+FROM debian
+MAINTAINER FAMBRANDS
 
 EXPOSE 5678
 
-#ENV RACK_ENV=production
-ENV REDIS_URL=redis://172.17.0.1:5432/0
-
-# update bundler to prevent errors concerning the lockfile
-bundle 
-RUN gem install resque resque-web
+# Install wget, sox and flite
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y ruby ruby-dev zlib1g-dev build-essential && \
+    gem install resque-web && \
+    apt-get autoremove -y ruby-dev zlib1g-dev build-essential && \
+    apt-get clean -y
 
 ENTRYPOINT ["resque-web", "-FL"]
+
 CMD ["-h"]
+
+WORKDIR /data
