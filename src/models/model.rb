@@ -17,7 +17,7 @@ class Subscription < ActiveRecord::Base
   has_many :line_items, class_name: 'SubLineItem'
   has_many :order_line_items, class_name: 'OrderLineItemsFixed'
   has_many :orders, through: :order_line_items
-  has_many :charges
+  has_and_belongs_to_many :charges, join_table: 'charge_fixed_line_items'
 
   after_save :update_line_items
 
@@ -214,7 +214,7 @@ class Subscription < ActiveRecord::Base
   # can be successfully skipped. The second element is the unsaved active record
   # object with the new `next_charge_scheduled_at`
   def skip
-    return [false, self] unless skippable?
+    return false unless skippable?
     self.next_charge_scheduled_at += 1.month
     true
   end
@@ -308,9 +308,10 @@ class Charge < ActiveRecord::Base
 
   self.primary_key = :charge_id
 
-  belongs_to :subscription
   has_one :shipping_address_assoc, class_name: 'ChargeShippingAddress'
   has_many :shipping_lines, class_name: 'ChargeShippingLine'
+  has_and_belongs_to_many :subscriptions, join_table: 'charge_fixed_line_items'
+  belongs_to :customer
 
   before_save :update_subscription_id
   after_save :update_shipping_address_assoc
@@ -518,6 +519,12 @@ class Charge < ActiveRecord::Base
     where("line_items @> \'[{\"subscription_id\": #{subscription_id.to_i}}]\'")
   end
 
+  def self.next_scheduled(options = {})
+    after = options[:after] || Date.today
+    where('scheduled_at > ?', after)
+      .order(scheduled_at: :asc)
+      .first
+  end
 
   def line_items=(val)
     #logger.debug @attributes
@@ -763,6 +770,7 @@ class Customer < ActiveRecord::Base
 
   has_many :subscriptions
   has_many :orders, through: :subscriptions
+  has_many :charges
 
   def self.from_recharge(attributes, *args)
     key_map = { 'hash' => 'customer_hash' }
@@ -914,4 +922,15 @@ class Customer < ActiveRecord::Base
       processor_type: processor_type
     }
   end
+end
+
+class SkipReason < ActiveRecord::Base
+  belongs_to :charge
+  belongs_to :subscription
+  belongs_to :customer, primary_key: :shopify_customer_id, foreign_key: :shopify_customer_id
+end
+
+class ChargeFixedLineItems < ActiveRecord::Base
+  belongs_to :subscription
+  belongs_to :charge
 end
