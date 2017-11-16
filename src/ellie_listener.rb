@@ -246,7 +246,8 @@ class EllieListener < Sinatra::Base
       return [400, @default_headers, {error: 'invalid payload data', details: e}.to_json]
     end
     skip_res = sub.skip
-    queue_res = Subscription.async :skip!, subscription_id
+    #queue_res = Subscription.async :skip!, subscription_id
+    queue_res = Resque.perform(Subscription, :recharge_update, :skip!, subscription_id)
     # FIXME: currently does not allow skipping prepaid subscriptions
     if queue_res
       SkipReason.create(
