@@ -123,6 +123,8 @@ module RechargeActiveRecordInclude
       res = RechargeAPI.put("/#{name.tableize}/#{obj[:id]}", body: obj.to_json)
       return unless res.success? && options[:persist]
       parsed = res.parsed_response[name.underscore]
+      logger.debug "Recharge sent: #{res.inspect}"
+      puts "Recharge sent: #{res.inspect}"
       find(parsed[:id]).update(map_in(obj))
     end
 

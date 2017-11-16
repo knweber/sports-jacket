@@ -247,6 +247,21 @@ ActiveRecord::Schema.define(version: 20171113231955) do
     t.index ["subscription_id"], name: "index_sub_line_items_on_subscription_id"
   end
 
+  create_table "subscription_update", force: :cascade do |t|
+    t.string "subscription_id"
+    t.string "customer_id"
+    t.string "first_name"
+    t.string "last_name"
+    t.string "product_title"
+    t.string "shopify_product_id"
+    t.string "shopify_variant_id"
+    t.string "sku"
+    t.boolean "updated", default: false
+    t.datetime "updated_at"
+    t.index ["customer_id"], name: "index_subscription_update_on_customer_id"
+    t.index ["subscription_id"], name: "index_subscription_update_on_subscription_id"
+  end
+
   create_table "subscriptions", force: :cascade do |t|
     t.string "subscription_id"
     t.string "address_id"
