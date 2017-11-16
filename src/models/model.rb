@@ -19,7 +19,7 @@ class Subscription < ActiveRecord::Base
   has_many :orders, through: :order_line_items
   has_and_belongs_to_many :charges, join_table: 'charge_fixed_line_items'
 
-  validates :next_charge_scheduled_at, if: :skippable?, on: :update
+  #validates :next_charge_scheduled_at, if: :skippable?, on: :update
 
   after_save :update_line_items
 
