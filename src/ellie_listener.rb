@@ -13,6 +13,7 @@ require_relative 'models/model'
 require_relative 'recharge_api'
 require_relative 'logging'
 require_relative 'resque_helper'
+require_relative 'resque_change_sizes'
 
 class HandlerError < StandardError
   DEFAULT_HEADERS = {}
@@ -174,42 +175,30 @@ class EllieListener < Sinatra::Base
   end
 
   put '/subscription/:subscription_id/sizes' do |subscription_id|
+    #puts 'found the method'
     # body parsing and validation
     begin
       json = JSON.parse request.body.read
-      sizes = json.select{|key, _| SubLineItem::SIZE_PROPERTIES.include? key}
+      sizes = json.select do |key, val|
+        SubLineItem::SIZE_PROPERTIES.include?(key) && SubLineItem::SIZE_VALUES.include?(val)
+      end
       logger.debug "sizes: #{sizes}"
     rescue Exception => e
       logger.error e.inspect
       return [400, @default_headers, {error: e}.to_json]
     end
-    line_items = sizes.map do |item, size|
-      SubLineItem.find_or_initialize_by(
-        subscription_id: subscription_id,
-        name: item,
-        value: size,
-      )
-    end
-    logger.debug "line items: #{line_items.inspect}"
-    unless line_items.all?(&:valid?)
-      error = {
-        error: 'Invalid sizes',
-        details: line_items.errors.collect.flatten
-      }
-      return [400, @default_headers, error.to_json]
-    end
-    # Recharge and cache update
     begin
-      body = {id: subscription_id, properties: line_items.map{|i| {name: i.name, value: i.value}}}
       #res = RechargeAPI.put("/subscriptions/#{subscription_id}", {body: body_json})
-      queued = Subscription.async(:recharge_update, body)
+      #queued = Subscription.async(:recharge_update, body)
+      #ChangeSizes.perform(subscription_id, sizes)
+      queued = Resque.enqueue(ChangeSizes, subscription_id, sizes)
       raise 'Error updating sizes. Please try again later.' unless queued
-      line_items.each(&:save!)
+      #line_items.each(&:save!)
     rescue Exception => e
       logger.error e.inspect
       return [500, @default_headers, {error: e}.to_json]
     end
-    [200, @default_headers, body.to_json]
+    [200, @default_headers, sizes.to_json]
   end
 
   put '/subscription/:subscription_id' do |subscription_id|
@@ -246,8 +235,8 @@ class EllieListener < Sinatra::Base
       return [400, @default_headers, {error: 'invalid payload data', details: e}.to_json]
     end
     skip_res = sub.skip
-    queue_res = Subscription.async :skip!, subscription_id
     # FIXME: currently does not allow skipping prepaid subscriptions
+    queue_res = Subscription.async :skip!, subscription_id
     if queue_res
       SkipReason.create(
         customer_id: sub.customer.customer_id,
