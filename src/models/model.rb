@@ -204,7 +204,9 @@ class Subscription < ActiveRecord::Base
     skip_conditions = [
       !prepaid?,
       active?,
-      Date.today.day < 5,
+      # FIXME: removed for debugging purposed. Revert before putting into
+      # production
+      #Date.today.day < 5,
       SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
       next_charge_scheduled_at.try('>', Date.today.beginning_of_month),
       next_charge_scheduled_at.try('<', Date.today.end_of_month),
