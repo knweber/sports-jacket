@@ -241,6 +241,7 @@ class EllieListener < Sinatra::Base
     return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
     begin
       request_body = JSON.parse request.body.read
+      puts "request_body = #{request_body}"
     rescue StandardError => e
       return [400, @default_headers, {error: 'invalid payload data', details: e}.to_json]
     end
@@ -249,8 +250,9 @@ class EllieListener < Sinatra::Base
     # FIXME: currently does not allow skipping prepaid subscriptions
     if queue_res
       SkipReason.create(
-        customer_id: subscription.customer.customer_id,
-        shopify_customer_id: request_body['shopify_id'],
+        customer_id: sub.customer.customer_id,
+        shopify_customer_id: request_body['shopify_customer_id'],
+        subscription_id: sub.subscription_id,
         charge_id: sub.charges.next_scheduled,
         skipped_to: sub.next_charge_scheduled_at,
         skip_status: skip_res,

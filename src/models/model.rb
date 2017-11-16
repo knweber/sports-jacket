@@ -195,7 +195,7 @@ class Subscription < ActiveRecord::Base
   def active?(time = nil)
     time ||= Time.current
     charges.where('scheduled_at > ?', time).count.positive? &&
-      active == 'ACTIVE'
+      status == 'ACTIVE'
   end
 
   def skippable?
