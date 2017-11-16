@@ -12,16 +12,25 @@ queue when invoked.
 * `subscription_pull[ yesterday | full_pull ]`
 
 ## Building the Image
+Manually:
+`docker build -t <your_image_name[:<your_version>]> .`
+
+## Running the Container
 For development:
-`docker build -t pull .`
+`./scripts/dev.sh`
+Environment is sourced from `.env.development`
+
+For production:
+`./scripts/prod.sh`
+Environment is sourced from `.env.production`
 
 ## Running the Tests
 `rake test`
 
-## Running the Container
-```bash
-./docker_run.sh <development | production>
-```
+Note another useful method for testing is to load the environment into `pry`.
+Use `pry -r ./scripts/pry_context.rb` for easy loading of the entire project.
+The `test_customer` variable is available in this scope for fast business logic
+tests.
 
 ## Queueing jobs from the container
 
@@ -93,7 +102,7 @@ Example:
   "sports-jacket": "S",
 }
 
-# updates with the body of:
+# updated with the body of:
 { "tops": "S" }
 
 # resulting output
@@ -129,7 +138,7 @@ Returns:
   "skipped": true,
   "subscription": {
     ...
-    "next_scheduled_charge_date": "2017-06-18",
+    "next_scheduled_charge_at": "2017-06-18",
     ...
   }
 }
