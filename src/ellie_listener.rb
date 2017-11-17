@@ -315,6 +315,19 @@ class EllieListener < Sinatra::Base
 
   end
 
+  post '/subscription_skip' do
+    puts "Received skip request"
+    puts params.inspect
+    params['recharge_change_header'] = @recharge_change_header
+    my_action = params['action']
+    if my_action == "skip_month"
+      Resque.enqueue(SubscriptionSkip, params)
+    else
+      puts "Cannot skip this product, action must be skip_month not #{my_action}"
+    end
+
+  end
+
   get '/skippable_subscriptions' do
     shopify_id = params['shopify_id']
     logger.debug params.inspect
@@ -342,6 +355,53 @@ class EllieListener < Sinatra::Base
         }
       end
     [200, @default_headers, data.to_json]
+  end
+
+  class SubscriptionSkip
+    extend ResqueHelper
+    @queue = "skip_product"
+    def self.perform(params)
+      Resque.logger = Logger.new("#{Dir.getwd}/logs/skip_resque.log")
+      puts "Got this: #{params.inspect}"
+      #POST /subscriptions/<subscription_id>/set_next_charge_date
+      subscription_id = params['subscription_id']
+      shopify_customer_id = params['shopify_customer_id']
+      my_reason = params['reason']
+      my_sub = Subscription.find(subscription_id)
+      my_customer = Customer.find_by(shopify_customer_id: shopify_customer_id)
+      my_customer_id = my_customer.customer_id
+      
+      my_now = DateTime.now.strftime("%Y-%m-%d %H:%M:%S")
+      puts my_sub.inspect
+      temp_next_charge = my_sub.next_charge_scheduled_at.to_s
+      puts temp_next_charge
+      my_next_charge = DateTime.strptime(temp_next_charge, "%Y-%m-%d %H:%M:%S %z") 
+      my_next_charge = my_next_charge >> 1
+      puts "Now next charge date = #{my_next_charge.inspect}"
+      next_charge_str = my_next_charge.strftime("%Y-%m-%d")
+      puts "We will change the next_charge_scheduled_at to: #{next_charge_str}"
+      recharge_change_header = params['recharge_change_header']
+      body = {"date" => next_charge_str}.to_json
+      puts "Pushing new charge_date to ReCharge: #{body}"
+      my_update_sub = HTTParty.post("https://api.rechargeapps.com/subscriptions/#{subscription_id}/set_next_charge_date", :headers => recharge_change_header, :body => body, :timeout => 80)
+      puts my_update_sub.inspect
+      Resque.logger.info(my_update_sub.inspect)
+
+      update_success = false
+      if my_update_sub.code == 200
+        update_success = true
+        puts "****** Hooray We have no errors **********"
+        Resque.logger.info("****** Hooray We have no errors **********")
+        puts "We are adding to skip_reasons table"
+        skip_reason = SkipReason.create(customer_id:  my_customer_id, shopify_customer_id:  shopify_customer_id, subscription_id:  subscription_id, reason:  my_reason, skipped_to:  next_charge_str, skip_status:  update_success, created_at:  my_now )
+        puts skip_reason.inspect
+      else
+        puts "We were not able to update the subscription"
+        Resque.logger.info("We were not able to update the subscription")
+      end
+
+      
+    end
   end
 
   class SubscriptionSwitch
