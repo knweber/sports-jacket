@@ -449,10 +449,7 @@ class EllieListener < Sinatra::Base
       product_title: sub.product_title,
       next_charge: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
       charge_date: sub.next_charge_scheduled_at.try{|time| time.strftime('%Y-%m-%d')},
-      sizes: sub.line_items
-        .select {|l| l.size_property?}
-        .map{|p| [p['name'], p['value']]}
-        .to_h,
+      sizes: sub.sizes
       prepaid: sub.prepaid?,
       prepaid_shipping_at: sub.shipping_at.try{|time| time.strftime('%Y-%m-%d')},
     }
