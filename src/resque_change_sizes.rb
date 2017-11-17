@@ -10,6 +10,7 @@ class ChangeSizes
     sub.sizes = new_sizes
     body = {properties: sub.raw_line_item_properties}
     res = RechargeAPI.put("/subscriptions/#{sub.subscription_id}", body: body.to_json)
+    puts "recharge_response: #{res.response}"
     new_props = res.parsed_response['subscription']['properties']
     puts "new sub props: #{new_props}"
     Subscription.find(subscription_id).update(raw_line_item_properties: new_props)

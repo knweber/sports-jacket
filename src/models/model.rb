@@ -242,7 +242,10 @@ class Subscription < ActiveRecord::Base
   end
 
   def sizes
-    size_line_items.map{|i| [i.name, i.value]}.to_h
+    raw_line_item_properties
+      .select{|p| SubLineItem::SIZE_PROPERTIES.include? p['name']}
+      .map{|p| [p['name'], p['value']]}
+      .to_h
   end
 
   def sizes=(new_sizes)
