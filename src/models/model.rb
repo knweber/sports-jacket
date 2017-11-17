@@ -182,7 +182,6 @@ class Subscription < ActiveRecord::Base
   # returns the updated active record object.
   def self.skip!(subscription_id)
     sub = Subscription.find(subscription_id)
-    # do not allow skips if after the 4th of the month
     res = sub.skip
     return unless res[0]
     sub.recharge_update!
@@ -246,6 +245,13 @@ class Subscription < ActiveRecord::Base
     size_line_items.map{|i| [i.name, i.value]}.to_h
   end
 
+  def sizes=(new_sizes)
+    prop_hash = raw_line_item_properties.map{|prop| [prop['name'], prop['value']]}.to_h
+    merged_hash = prop_hash.merge new_sizes
+    puts "merged_hash = #{merged_hash}"
+    self[:raw_line_item_properties] = merged_hash.map{|k,v| {'name' => k, 'value' => v}}
+  end
+
   private
 
   def update_line_items
@@ -280,20 +286,8 @@ class SubLineItem < ActiveRecord::Base
     end
   end
 
-  before_save :sync_subscription
-
   def size_property?
     SIZE_PROPERTIES.include? name
-  end
-
-  private
-
-  def sync_subscription
-    sub = subscription
-    sub.raw_line_item_properties.map! do |orig|
-      orig[:name] == name ? { name: name, value: value } : orig
-    end
-    sub.save!
   end
 end
 

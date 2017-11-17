@@ -21,7 +21,7 @@ docker run -d \
 docker run -d \
   --name ${NAME}_worker \
   --env-file .env.docker \
-  -e QUEUE=default \
+  -e 'QUEUE=*' \
   ${NAME}_worker
 
 docker logs -f ${NAME}_web &
