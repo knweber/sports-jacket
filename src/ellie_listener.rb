@@ -309,10 +309,16 @@ class EllieListener < Sinatra::Base
     puts params.inspect
     params['recharge_change_header'] = @recharge_change_header
     my_action = params['action']
-    if my_action == "skip_month"
-      Resque.enqueue(SubscriptionSkip, params)
+    my_now = Date.today.day
+    puts "Day of the month is #{my_now}"
+    if my_now < 5
+      if my_action == "skip_month"
+        Resque.enqueue(SubscriptionSkip, params)
+      else
+        puts "Cannot skip this product, action must be skip_month not #{my_action}"
+      end
     else
-      puts "Cannot skip this product, action must be skip_month not #{my_action}"
+      puts "It is past the 4th of the month, cannot skip"
     end
 
   end
