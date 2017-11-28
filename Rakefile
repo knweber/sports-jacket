@@ -59,3 +59,15 @@ task :update_subscription_product do |t|
   DetermineInfo::InfoGetter.new.update_subscription_product
 
 end
+
+
+desc 'load current product key-value pairs into current_products table for updating subscriptions'
+task :load_current_product do |t|
+  DetermineInfo::InfoGetter.new.load_current_products
+end
+
+
+desc 'load update_products table with new data for updating the subscriptions each month'
+task :load_update_products do |t|
+  DetermineInfo::InfoGetter.new.load_update_products
+end
