@@ -1,20 +1,19 @@
 development:
-  #adapter: postgresql
+  adapter: postgresql
   encoding: unicode
-  #database: ellieactive_development
+  database: ellieactive_development
   pool: 2
   url: <%= ENV['DATABASE_URL'] %>
 
-  test:
-  #adapter: postgresql
+test:
+  adapter: postgresql
   encoding: unicode
-  #database: ellieactive_test
+  database: ellieactive_test
   pool: 2
   url: <%= ENV['DATABASE_URL'] %>
 
-  production:
-  #adapter: postgresql
+production:
+  adapter: postgresql
   encoding: unicode
-  #database: ellieactive_production
   pool: 2
-  url: <%= ENV['DATABASE_URL'] %>
+  url: 'postgres://ellie_dev_team:H4rdC4s3!99@ellie-production-v2.cabmxdxjziky.us-east-1.rds.amazonaws.com:5432/ellie_production'

@@ -81,10 +81,6 @@ module RechargeActiveRecordInclude
     remapped.to_h
   end
 
-  def from_recharge(obj)
-
-  end
-
   module ClassMethods
 
     def from_recharge(obj)
@@ -127,8 +123,6 @@ module RechargeActiveRecordInclude
       res = RechargeAPI.put("/#{name.tableize}/#{obj[:id]}", body: obj.to_json)
       return unless res.success? && options[:persist]
       parsed = res.parsed_response[name.underscore]
-      logger.debug "Recharge sent: #{res.inspect}"
-      puts "Recharge sent: #{res.inspect}"
       find(parsed[:id]).update(map_in(obj))
     end
 
@@ -149,6 +143,8 @@ module RechargeActiveRecordInclude
       delete id
     end
 
+    private
+
     def map_in(obj)
       remapped = api_map.map do |m|
         remote = obj[m[:remote_key]]
@@ -157,8 +153,6 @@ module RechargeActiveRecordInclude
       end
       remapped.to_h
     end
-    
-    private
 
     def diff(left, right)
       column_names.reject { |col| left[col] == right[col] }

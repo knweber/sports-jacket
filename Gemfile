@@ -11,10 +11,3 @@ gem 'sinatra-activerecord'
 gem 'pg'
 gem "activesupport"
 gem "rake"
-gem "redis", "=3.3.5"
-
-group :development do
-  gem 'pry'
-  gem 'rack-test'
-  gem 'rubocop'
-end

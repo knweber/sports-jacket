@@ -6,6 +6,4 @@ class RenameType < ActiveRecord::Migration[5.1]
   def down
     rename_column :orders, :order_type, :type
   end
-
-
 end

@@ -17,7 +17,7 @@ class Subscription < ActiveRecord::Base
   has_many :line_items, class_name: 'SubLineItem'
   has_many :order_line_items, class_name: 'OrderLineItemsFixed'
   has_many :orders, through: :order_line_items
-  has_and_belongs_to_many :charges, join_table: 'charge_fixed_line_items'
+  has_many :charges
 
   after_save :update_line_items
 
@@ -27,7 +27,6 @@ class Subscription < ActiveRecord::Base
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
   ].freeze
 
-  #for changing sizes
   CURRENT_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
@@ -37,15 +36,6 @@ class Subscription < ActiveRecord::Base
     { id: '10016265938', title: 'Ellie 3- Pack: ' },
     { id: '10870682450', title: 'Fit to Be Seen Ellie 3- Pack' },
   ].freeze
-
-  #for skips/alternates
-  SKIPPABLE_PRODUCTS = [
-    { id: '8204555081', title: 'Monthly Box' },
-    { id: '10016265938', title: 'Ellie 3- Pack: ' }
-  ].freeze
-
-  scope :skippable_products, -> { where shopify_product_id: SKIPPABLE_PRODUCTS.pluck(:id) }
-  scope :current_products, -> { where shopify_product_id: CURRENT_PRODUCTS.pluck(:id), status: 'ACTIVE' }
 
   # Defines the relationship between the local database table and the remote
   # Recharge data format
@@ -178,13 +168,14 @@ class Subscription < ActiveRecord::Base
     ].freeze
   end
 
-  # skips the given subscription_id immeadiately
-  # returns the updated active record object.
+  # skips the given subscription_id
   def self.skip!(subscription_id)
     sub = Subscription.find(subscription_id)
-    res = sub.skip
-    return unless res[0]
+    # do not allow skips if after the 4th of the month
+    return false if sub.prepaid? || Date.today.day > 4
+    sub.next_charge_scheduled_at += 1.month
     sub.recharge_update!
+    sub.save
   end
 
   def prepaid?
@@ -193,29 +184,11 @@ class Subscription < ActiveRecord::Base
 
   def active?(time = nil)
     time ||= Time.current
-    charges.where('scheduled_at > ?', time).count.positive? &&
-      status == 'ACTIVE'
+    charges.where('scheduled_at > ?', time).count.positive?
   end
 
-  def skippable?
-    skip_conditions = [
-      !prepaid?,
-      active?,
-      Date.today.day < 5,
-      SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
-      next_charge_scheduled_at.try('>', Date.today.beginning_of_month),
-      next_charge_scheduled_at.try('<', Date.today.end_of_month),
-    ]
-    skip_conditions.all?
-  end
-
-  # returns a 2 element array. The first element indecateds if the subscription
-  # can be successfully skipped. The second element is the unsaved active record
-  # object with the new `next_charge_scheduled_at`
-  def skip
-    return false unless skippable?
-    self.next_charge_scheduled_at += 1.month
-    true
+  def skip!
+    Subscription.skip! subscription_id
   end
 
   #def charges
@@ -242,17 +215,7 @@ class Subscription < ActiveRecord::Base
   end
 
   def sizes
-    raw_line_item_properties
-      .select{|p| SubLineItem::SIZE_PROPERTIES.include? p['name']}
-      .map{|p| [p['name'], p['value']]}
-      .to_h
-  end
-
-  def sizes=(new_sizes)
-    prop_hash = raw_line_item_properties.map{|prop| [prop['name'], prop['value']]}.to_h
-    merged_hash = prop_hash.merge new_sizes
-    puts "merged_hash = #{merged_hash}"
-    self[:raw_line_item_properties] = merged_hash.map{|k,v| {'name' => k, 'value' => v}}
+    size_line_items.map{|i| [i.name, i.value]}.to_h
   end
 
   private
@@ -289,8 +252,20 @@ class SubLineItem < ActiveRecord::Base
     end
   end
 
+  before_save :sync_subscription
+
   def size_property?
     SIZE_PROPERTIES.include? name
+  end
+
+  private
+
+  def sync_subscription
+    sub = subscription
+    sub.raw_line_item_properties.map! do |orig|
+      orig[:name] == name ? { name: name, value: value } : orig
+    end
+    sub.save!
   end
 end
 
@@ -305,10 +280,9 @@ class Charge < ActiveRecord::Base
 
   self.primary_key = :charge_id
 
+  belongs_to :subscription
   has_one :shipping_address_assoc, class_name: 'ChargeShippingAddress'
   has_many :shipping_lines, class_name: 'ChargeShippingLine'
-  has_and_belongs_to_many :subscriptions, join_table: 'charge_fixed_line_items'
-  belongs_to :customer
 
   before_save :update_subscription_id
   after_save :update_shipping_address_assoc
@@ -516,12 +490,6 @@ class Charge < ActiveRecord::Base
     where("line_items @> \'[{\"subscription_id\": #{subscription_id.to_i}}]\'")
   end
 
-  def self.next_scheduled(options = {})
-    after = options[:after] || Date.today
-    where('scheduled_at > ?', after)
-      .order(scheduled_at: :asc)
-      .first
-  end
 
   def line_items=(val)
     #logger.debug @attributes
@@ -767,7 +735,6 @@ class Customer < ActiveRecord::Base
 
   has_many :subscriptions
   has_many :orders, through: :subscriptions
-  has_many :charges
 
   def self.from_recharge(attributes, *args)
     key_map = { 'hash' => 'customer_hash' }
@@ -919,19 +886,4 @@ class Customer < ActiveRecord::Base
       processor_type: processor_type
     }
   end
-end
-
-class SkipReason < ActiveRecord::Base
-  belongs_to :charge
-  belongs_to :subscription
-  belongs_to :customer, primary_key: :shopify_customer_id, foreign_key: :shopify_customer_id
-end
-
-class ChargeFixedLineItems < ActiveRecord::Base
-  belongs_to :subscription
-  belongs_to :charge
-end
-
-class SubscriptionsUpdated < ActiveRecord::Base
-  self.table_name = "subscriptions_updated"
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171127200104) do
+ActiveRecord::Schema.define(version: 20171106195056) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -89,10 +89,6 @@ ActiveRecord::Schema.define(version: 20171127200104) do
     t.decimal "total_price", precision: 10, scale: 2
     t.datetime "updated_at"
     t.jsonb "discount_codes"
-    t.datetime "synced_at"
-    t.jsonb "raw_line_items", default: [], null: false
-    t.jsonb "raw_shipping_lines", default: [], null: false
-    t.string "browser_ip"
     t.index ["address_id"], name: "index_charges_on_address_id"
     t.index ["charge_id"], name: "index_charges_on_charge_id"
     t.index ["customer_id"], name: "index_charges_on_customer_id"
@@ -151,7 +147,6 @@ ActiveRecord::Schema.define(version: 20171127200104) do
     t.string "billing_phone"
     t.string "processor_type"
     t.string "status"
-    t.datetime "synced_at"
     t.index ["customer_id"], name: "index_customers_on_customer_id"
     t.index ["shopify_customer_id"], name: "index_customers_on_shopify_customer_id"
   end
@@ -235,7 +230,6 @@ ActiveRecord::Schema.define(version: 20171127200104) do
     t.decimal "total_price", precision: 10, scale: 2
     t.jsonb "shipping_address"
     t.jsonb "billing_address"
-    t.datetime "synced_at"
     t.index ["address_id"], name: "index_orders_on_address_id"
     t.index ["charge_id"], name: "index_orders_on_charge_id"
     t.index ["customer_id"], name: "index_orders_on_customer_id"
@@ -244,22 +238,6 @@ ActiveRecord::Schema.define(version: 20171127200104) do
     t.index ["shopify_order_id"], name: "index_orders_on_shopify_order_id"
     t.index ["shopify_order_number"], name: "index_orders_on_shopify_order_number"
     t.index ["transaction_id"], name: "index_orders_on_transaction_id"
-  end
-
-  create_table "skip_reasons", force: :cascade do |t|
-    t.string "customer_id", null: false
-    t.string "shopify_customer_id", null: false
-    t.string "subscription_id", null: false
-    t.string "charge_id"
-    t.string "reason"
-    t.datetime "skipped_to"
-    t.boolean "skip_status"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["charge_id"], name: "index_skip_reasons_on_charge_id"
-    t.index ["customer_id"], name: "index_skip_reasons_on_customer_id"
-    t.index ["shopify_customer_id"], name: "index_skip_reasons_on_shopify_customer_id"
-    t.index ["subscription_id"], name: "index_skip_reasons_on_subscription_id"
   end
 
   create_table "sub_line_items", force: :cascade do |t|
@@ -305,26 +283,9 @@ ActiveRecord::Schema.define(version: 20171127200104) do
     t.integer "order_day_of_month"
     t.integer "order_day_of_week"
     t.jsonb "raw_line_item_properties"
-    t.datetime "synced_at"
     t.index ["address_id"], name: "index_subscriptions_on_address_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["subscription_id"], name: "index_subscriptions_on_subscription_id"
-  end
-
-  create_table "subscriptions_updated", force: :cascade do |t|
-    t.string "subscription_id"
-    t.string "customer_id"
-    t.datetime "updated_at"
-    t.datetime "next_charge_scheduled_at"
-    t.string "product_title"
-    t.string "status"
-    t.string "sku"
-    t.string "shopify_product_id"
-    t.string "shopify_variant_id"
-    t.boolean "updated", default: false
-    t.datetime "processed_at"
-    t.index ["customer_id"], name: "index_subscriptions_updated_on_customer_id"
-    t.index ["subscription_id"], name: "index_subscriptions_updated_on_subscription_id"
   end
 
   create_table "update_line_items", force: :cascade do |t|

@@ -1,8 +1,1 @@
-.env*
-.rake_tasks~
-/log_file*
-/error*
-._*
-*.pid
-/logs
-puma.state
+.env
