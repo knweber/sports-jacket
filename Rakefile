@@ -46,3 +46,16 @@ task :test do
     t.pattern = 'test/*_test.rb'
   end
 end
+
+desc 'set up subscriptions_updated table, delete old data and reset id sequence'
+task :setup_subscriptions_updated do |t|
+  DetermineInfo::InfoGetter.new.setup_subscription_update_table
+
+end
+
+
+desc 'update subscription properties sku, title, product_id, variant_id'
+task :update_subscription_product do |t|
+  DetermineInfo::InfoGetter.new.update_subscription_product
+
+end

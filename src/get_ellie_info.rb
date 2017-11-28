@@ -9,6 +9,7 @@ require 'active_support/core_ext'
 require 'resque'
 require_relative 'worker_helper'
 require_relative 'logging'
+require_relative 'resque_helper'
 
 class Object
   include Logging
@@ -864,5 +865,39 @@ module DetermineInfo
         get_sub_full(params)
       end
     end
+
+    def setup_subscription_update_table
+      params = {"action" => "setting up subscription_updated table"}
+      Resque.enqueue(SetupSubscriptionUpdated, params)
+      
+    end
+
+    class SetupSubscriptionUpdated
+      extend ResqueHelper
+      include Logging
+      @queue = "setup_subscription_update"
+      def self.perform(params)
+        logger.info "SetupSubscriptionUpdated#perform params: #{params.inspect}"
+        setup_subscription_update(params)
+      end
+    end
+
+    def update_subscription_product
+     params = {"action" => "updating subscription product info", "recharge_change_header" => @my_change_charge_header} 
+     Resque.enqueue(UpdateSubscriptionProduct, params)
+
+    end
+
+    class UpdateSubscriptionProduct
+      extend ResqueHelper
+      include Logging
+      @queue = "subscription_property_update"
+      def self.perform(params)
+        logger.info "UpdateSubscriptionProduct#perform params: #{params.inspect}"
+        update_subscription_product(params)
+      end
+
+    end
+
   end
 end
