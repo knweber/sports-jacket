@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171115234213) do
+ActiveRecord::Schema.define(version: 20171128205635) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -123,6 +123,13 @@ ActiveRecord::Schema.define(version: 20171115234213) do
     t.string "carrier_identifier"
     t.string "request_fulfillment_service_id"
     t.index ["charge_id"], name: "index_charges_shipping_lines_on_charge_id"
+  end
+
+  create_table "current_products", force: :cascade do |t|
+    t.string "prod_id_key"
+    t.string "prod_id_value"
+    t.index ["prod_id_key"], name: "index_current_products_on_prod_id_key"
+    t.index ["prod_id_value"], name: "index_current_products_on_prod_id_value"
   end
 
   create_table "customer_info", force: :cascade do |t|
@@ -311,10 +318,37 @@ ActiveRecord::Schema.define(version: 20171115234213) do
     t.index ["subscription_id"], name: "index_subscriptions_on_subscription_id"
   end
 
+  create_table "subscriptions_updated", force: :cascade do |t|
+    t.string "subscription_id"
+    t.string "customer_id"
+    t.datetime "updated_at"
+    t.datetime "next_charge_scheduled_at"
+    t.string "product_title"
+    t.string "status"
+    t.string "sku"
+    t.string "shopify_product_id"
+    t.string "shopify_variant_id"
+    t.boolean "updated", default: false
+    t.datetime "processed_at"
+    t.index ["customer_id"], name: "index_subscriptions_updated_on_customer_id"
+    t.index ["subscription_id"], name: "index_subscriptions_updated_on_subscription_id"
+  end
+
   create_table "update_line_items", force: :cascade do |t|
     t.string "subscription_id"
     t.jsonb "properties"
     t.boolean "updated", default: false
+  end
+
+  create_table "update_products", force: :cascade do |t|
+    t.string "sku"
+    t.string "product_title"
+    t.string "shopify_product_id"
+    t.string "shopify_variant_id"
+    t.index ["product_title"], name: "index_update_products_on_product_title"
+    t.index ["shopify_product_id"], name: "index_update_products_on_shopify_product_id"
+    t.index ["shopify_variant_id"], name: "index_update_products_on_shopify_variant_id"
+    t.index ["sku"], name: "index_update_products_on_sku"
   end
 
 end
