@@ -899,5 +899,44 @@ module DetermineInfo
 
     end
 
+    def load_current_products
+      my_delete = "delete from current_products"
+      @conn.exec(my_delete)
+      my_reorder = "ALTER SEQUENCE current_products_id_seq RESTART WITH 1"
+      @conn.exec(my_reorder)
+      my_insert = "insert into current_products (prod_id_key, prod_id_value) values ($1, $2)"
+      @conn.prepare('statement1', "#{my_insert}")
+      CSV.foreach('current_products.csv', :encoding => 'ISO-8859-1', :headers => true) do |row|
+        #puts row.inspect
+        prod_id_key = row['prod_id_key']
+        prod_id_value = row['prod_id_value']
+        
+        @conn.exec_prepared('statement1', [prod_id_key, prod_id_value])
+      end
+        @conn.close
+
+    end
+
+    def load_update_products
+      my_delete = "delete from update_products"
+      @conn.exec(my_delete)
+      my_reorder = "ALTER SEQUENCE update_products_id_seq RESTART WITH 1"
+      @conn.exec(my_reorder)
+      my_insert = "insert into update_products (product_title, sku, shopify_product_id, shopify_variant_id) values ($1, $2, $3, $4)"
+      @conn.prepare('statement1', "#{my_insert}")
+      CSV.foreach('update_products.csv', :encoding => 'ISO-8859-1', :headers => true) do |row|
+        #puts row.inspect
+        product_title = row['product_title']
+        sku = row['sku']
+        shopify_product_id = row['shopify_product_id']
+        shopify_variant_id = row['shopify_variant_id']
+        
+        @conn.exec_prepared('statement1', [product_title, sku, shopify_product_id, shopify_variant_id])
+      end
+        @conn.close
+
+
+    end
+
   end
 end
