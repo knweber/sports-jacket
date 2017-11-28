@@ -139,8 +139,20 @@ module ResqueHelper
             body = my_body.to_json
 
 
-            #my_update_sub = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{subscription_id}", :headers => recharge_change_header, :body => body, :timeout => 80)
-            #puts my_update_sub.inspect
+            my_update_sub = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{my_sub_id}", :headers => recharge_change_header, :body => body, :timeout => 80)
+            puts my_update_sub.inspect
+            Resque.logger.info my_update_sub.inspect
+            if my_update_sub.code == 200
+                sub.updated = true
+                time_updated = DateTime.now
+                time_updated_str = time_updated.strftime("%Y-%m-%d %H:%M:%S")
+                sub.processed_at = time_updated_str
+                sub.save
+
+
+            else
+                Resque.logger.warn "WARNING -- COULD NOT UPDATE subscription #{my_sub_id}"
+            end
             Resque.logger.info "Sleeping 6 seconds"
             sleep 6
             my_current = Time.now
