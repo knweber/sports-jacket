@@ -954,3 +954,11 @@ class Config < ActiveRecord::Base
     all.map{|r| [r[primary_key], r.val]}.to_h
   end
 end
+
+class CurrentProduct < ActiveRecord::Base
+
+end
+
+class UpdateProduct < ActiveRecord::Base
+
+end

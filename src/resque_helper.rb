@@ -66,9 +66,11 @@ module ResqueHelper
         logger.info "my_end_month_str = #{my_end_month_str}"
         alt_3pack_prod_id = ENV['ALT_ELLIE_3PACK_PRODUCT_ID']
         alt_monthly_prod_id = ENV['ALT_MONTHLY_PRODUCT_ID']
+        monthly_box_prod_id = ENV['MONTHLY_PRODUCT_ID']
+        ellie_3pack_prod_id = ENV['ELLIE_3PACK_PRODUCT_ID']
         logger.info "alt_monthly_prod_id = #{alt_monthly_prod_id}"
 
-        subs_update = "insert into subscriptions_updated (subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id) select subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id from subscriptions where status = 'ACTIVE' and next_charge_scheduled_at > \'#{my_end_month_str}\' and (shopify_product_id = \'#{alt_monthly_prod_id}\' or shopify_product_id = \'#{alt_3pack_prod_id}\')"
+        subs_update = "insert into subscriptions_updated (subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id) select subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id from subscriptions where status = 'ACTIVE' and next_charge_scheduled_at > \'#{my_end_month_str}\' and (shopify_product_id = \'#{alt_monthly_prod_id}\' or shopify_product_id = \'#{alt_3pack_prod_id}\' or shopify_product_id = \'#{monthly_box_prod_id}\' or shopify_product_id = \'#{ellie_3pack_prod_id}\')"
         conn.exec(subs_update)
         conn.close
         logger.info "Done setting up subscriptions_updated table!"
@@ -79,17 +81,37 @@ module ResqueHelper
         stuff_to_return = {}
         alt_3pack_prod_id = ENV['ALT_ELLIE_3PACK_PRODUCT_ID']
         alt_monthly_prod_id = ENV['ALT_MONTHLY_PRODUCT_ID']
+        monthly_box_prod_id = ENV['MONTHLY_PRODUCT_ID']
+        ellie_3pack_prod_id = ENV['ELLIE_3PACK_PRODUCT_ID']
+        
+        new_ellie_3pack_prod = CurrentProduct.find_by prod_id_key: 'ellie_3pack_prod_id'
+        new_ellie_3pack_id = new_ellie_3pack_prod.prod_id_value
+        new_alt3pack_prod = CurrentProduct.find_by prod_id_key: 'alt_3pack_prod_id'
+        new_alt3pack_prod_id = new_alt3pack_prod.prod_id_value
+        new_monthly_prod = CurrentProduct.find_by prod_id_key: 'monthly_box_prod_id'
+        new_monthly_prod_id = new_monthly_prod.prod_id_value
+        new_alt_monthly_prod = CurrentProduct.find_by prod_id_key: 'alt_monthly_prod_id'
+        new_alt_monthly_prod_id = new_alt_monthly_prod.prod_id_value
+        monthly_product = UpdateProduct.find_by(product_title: 'Power Moves - 5 Item' )
+        ellie_3pack = UpdateProduct.find_by(product_title: 'Power Moves - 3 Item' )
+
+
+        #puts new_ellie_3pack_id
 
         case my_product_id
-        when alt_monthly_prod_id 
+        when new_alt_monthly_prod_id 
         #customer has monthly box, return Alternate Monthly Box  
-        stuff_to_return = {"sku" => "111", "product_title" => "222", "shopify_product_id" => "333", "shopify_variant_id" => "444"}
-        when alt_3pack_prod_id
+        stuff_to_return = {"sku" => monthly_product.sku, "product_title" => monthly_product.product_title, "shopify_product_id" => monthly_product.shopify_product_id, "shopify_variant_id" => monthly_product.shopify_variant_id}
+        when new_alt3pack_prod_id
         #Customer has Ellie 3- Pack, return Alternate Ellie 3- Pack
-        stuff_to_return = {"sku" => "555", "product_title" => "666", "shopify_product_id" => "777", "shopify_variant_id" => "888"}
+        stuff_to_return = {"sku" => ellie_3pack.sku, "product_title" => ellie_3pack.product_title, "shopify_product_id" => ellie_3pack.shopify_product_id, "shopify_variant_id" => ellie_3pack.shopify_variant_id}
+        when new_monthly_prod_id
+        stuff_to_return = {"sku" => monthly_product.sku, "product_title" => monthly_product.product_title, "shopify_product_id" => monthly_product.shopify_product_id, "shopify_variant_id" => monthly_product.shopify_variant_id}  
+        when new_ellie_3pack_id
+        stuff_to_return = {"sku" => ellie_3pack.sku, "product_title" => ellie_3pack.product_title, "shopify_product_id" => ellie_3pack.shopify_product_id, "shopify_variant_id" => ellie_3pack.shopify_variant_id}      
         else
         #Give them the Alt 3-Pack
-        stuff_to_return = {"sku" => "555", "product_title" => "666", "shopify_product_id" => "777", "shopify_variant_id" => "888"}
+        stuff_to_return = {"sku" => ellie_3pack.sku, "product_title" => ellie_3pack.product_title, "shopify_product_id" => ellie_3pack.shopify_product_id, "shopify_variant_id" => ellie_3pack.shopify_variant_id}
 
         end
 
@@ -105,6 +127,7 @@ module ResqueHelper
         my_now = Time.now
         recharge_change_header = params['recharge_change_header']
         Resque.logger.info recharge_change_header
+        
         my_subs = SubscriptionsUpdated.where("updated = ?", false)
         my_subs.each do |sub|
             Resque.logger.info sub.inspect
@@ -116,8 +139,20 @@ module ResqueHelper
             body = my_body.to_json
 
 
-            #my_update_sub = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{subscription_id}", :headers => recharge_change_header, :body => body, :timeout => 80)
-            #puts my_update_sub.inspect
+            my_update_sub = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{my_sub_id}", :headers => recharge_change_header, :body => body, :timeout => 80)
+            puts my_update_sub.inspect
+            Resque.logger.info my_update_sub.inspect
+            if my_update_sub.code == 200
+                sub.updated = true
+                time_updated = DateTime.now
+                time_updated_str = time_updated.strftime("%Y-%m-%d %H:%M:%S")
+                sub.processed_at = time_updated_str
+                sub.save
+
+
+            else
+                Resque.logger.warn "WARNING -- COULD NOT UPDATE subscription #{my_sub_id}"
+            end
             Resque.logger.info "Sleeping 6 seconds"
             sleep 6
             my_current = Time.now

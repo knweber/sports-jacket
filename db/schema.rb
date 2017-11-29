@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171128184323) do
+ActiveRecord::Schema.define(version: 20171128205635) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -129,6 +129,13 @@ ActiveRecord::Schema.define(version: 20171128184323) do
     t.jsonb "val"
     t.datetime "created_at", default: -> { "now()" }, null: false
     t.datetime "updated_at", default: -> { "now()" }, null: false
+  end
+
+  create_table "current_products", force: :cascade do |t|
+    t.string "prod_id_key"
+    t.string "prod_id_value"
+    t.index ["prod_id_key"], name: "index_current_products_on_prod_id_key"
+    t.index ["prod_id_value"], name: "index_current_products_on_prod_id_value"
   end
 
   create_table "customer_info", force: :cascade do |t|
@@ -337,6 +344,17 @@ ActiveRecord::Schema.define(version: 20171128184323) do
     t.string "subscription_id"
     t.jsonb "properties"
     t.boolean "updated", default: false
+  end
+
+  create_table "update_products", force: :cascade do |t|
+    t.string "sku"
+    t.string "product_title"
+    t.string "shopify_product_id"
+    t.string "shopify_variant_id"
+    t.index ["product_title"], name: "index_update_products_on_product_title"
+    t.index ["shopify_product_id"], name: "index_update_products_on_shopify_product_id"
+    t.index ["shopify_variant_id"], name: "index_update_products_on_shopify_variant_id"
+    t.index ["sku"], name: "index_update_products_on_sku"
   end
 
 end
