@@ -9,13 +9,18 @@ class Shopify
     @base_url = "#{config['api_key']}:#{config['api_password']}@#{@domain}/admin"
     @default_options = {
       verify: false,
+      headers: {
+        'Content-Type' => 'application/json',
+        'Accept' => '*/*',
+        #'Accept' => 'application/json',
+      }
     }
   end
 
   def get(path, options = {})
     opt = @default_options.merge options
     url = "https://#{@base_url}#{path}"
-    pp opt, url
+    #pp opt, url
     res = HTTParty.get(url, opt)
     #puts "Status: #{res.status}"
     res

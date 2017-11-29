@@ -14,9 +14,9 @@ Config['alt_monthly_product'] = {
 }
 # these values came from elliestaging on 11/28
 Config['rollover'] = {
-  new_theme_id: 316735506,
+  new_theme_id: 8050671648,
   current_collection_id: 19622428704,
-  new_current_collection_product_ids: [69026938898, 69026316306],
+  new_current_collection_product_ids: [409385271328, 9007888773, 409382027296, 417063993376],
   past_collection_id: 19623280672,
   new_past_collection_product_ids: [9003059781]
 }
