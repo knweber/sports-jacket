@@ -1,5 +1,6 @@
 module Rollover
-  def run!
+  def self.run!
+    puts 'Starting rollover...'
     rollover_config = Config['rollover']
     shopify = Shopify.new(Config['shopify'])
     past_collection_id = rollover_config['past_collection_id']
@@ -7,21 +8,24 @@ module Rollover
     # TODO: get these datapoints
     new_product_ids = rollover_config['new_current_collection_product_ids']
     new_past_collection_product_ids = rollover_config['new_past_collection_product_ids']
+    new_theme_id = rollover_config['new_theme_id']
 
+    puts 'Getting current collection...'
     res = shopify.get("/collects.json?collection_id=#{current_collection_id}")
     unless res.ok?
-      raise "unable to get current collection items. Response code: #{res.code}"
+      puts res.code
+      puts res.parsed_response
+      #raise "unable to get current collection items. Response code: #{res.code}"
     end
     current_collects = res.parsed_response['collects']
     current_product_ids = current_collects.map {|collect| collect['product_id']}
 
-    # delete current products from current collection
+    puts 'Clearing current collection...'
     current_collects.each do |collect|
       shopify.delete("/collect/#{collect['id']}.json")
     end
 
-    # construct all the new collect association objects to be created from both current and
-    # new products
+    puts 'Building new collections'
     new_collects = []
     new_collects << (current_product_ids & new_past_collection_product_ids).map do |product_id|
       {
@@ -36,21 +40,29 @@ module Rollover
       }
     end
 
-    # post new collect associations to shopify
+    puts 'Posting new collection to shopify...'
     new_collects.each do |new_collect|
       res = shopify.post("/collects.json", data: { collect: new_collect })
       unless res.ok?
-        raise "Unable to create collect for product: #{product_id} in collection: #{past_collection_id}"
+        puts res.code
+        puts res.parsed_response
+        #raise "Unable to create collect association #{new_collect.inspect}"
       end
     end
 
-    # set new theme
+    puts 'Sessing new theme...'
     theme_data = {
       id: new_theme_id,
       roll: 'main',
       published: true,
     }
-    shopify.put("/themes/#{new_theme_id}.json", data: {theme: theme_data})
+    res = shopify.put("/themes/#{new_theme_id}.json", data: {theme: theme_data})
+    unless res.ok?
+      puts res.code
+      puts res.parsed_response
+      #raise "Unable to set new theme id: #{new_theme_id}"
+    end
+    true
   end
 
 end
