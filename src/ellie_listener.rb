@@ -51,7 +51,7 @@ class EllieListener < Sinatra::Base
     @tokens = {}
     @key = ENV['SHOPIFY_API_KEY']
     @secret = ENV['SHOPIFY_SHARED_SECRET']
-    @app_url = 'ellieactivesupport.com'
+    @app_url = 'www.ellieactivesportshelp.com'
     @default_headers = { 'Content-Type' => 'application/json' }
     @recharge_token = ENV['RECHARGE_ACCESS_TOKEN']
     @recharge_change_header = {
@@ -64,7 +64,7 @@ class EllieListener < Sinatra::Base
   end
 
   get '/install' do
-    shop = 'elliestaging.myshopify.com'
+    shop = 'ellieactive.myshopify.com'
     scopes = 'read_orders, write_orders, read_products, read_customers, write_customers'
 
     # construct the installation URL and redirect the merchant
