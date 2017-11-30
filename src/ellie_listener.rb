@@ -153,7 +153,7 @@ class EllieListener < Sinatra::Base
   get '/subscription/:subscription_id/sizes' do |subscription_id|
     sub = Subscription.find subscription_id
     #sub = Subscription.limit(200).sample
-    [404, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
+    return [404, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
     [200, @default_headers, sub.sizes.to_json]
   end
 
