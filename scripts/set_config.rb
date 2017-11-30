@@ -7,6 +7,7 @@ Config['shopify'] = {
   api_shared_secret: 'e6057ee983e9b4c9fafc2363f9864ac9',
   api_password: '0bda7a26942001b0a5728c2e810d4b9f'
 }
+
 # these values came from elliestaging on 11/28
 Config['rollover'] = {
   new_theme_id: 8050671648,
@@ -26,6 +27,7 @@ Config['rollover'] = {
   #api_shared_secret: '31bba2a69efdd8cb77e5c6e3e6e9d3b6',
   #api_password: 'fe30edfd8709de2c51a2250261568c09'
 #}
+
 #Config['rollover'] = {
   #new_theme_id: 316735506,
   #current_collection_id: 1935540242,
