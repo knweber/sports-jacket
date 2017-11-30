@@ -27,6 +27,17 @@ module Rollover
     puts 'Setting new alternate product...'
     outcome << set_alternate_product(shopify, rollover_config['new_alternate_product_id'])
 
+    puts 'Setting new ellie_exclusives'
+    exclusives_handle = 'ellie-exclusives'
+    current_exclusives = shopify.get('/custom_collections.json', query: { handle: exclusives_handle })
+      .parsed_response['custom_collections'].try(:first)
+    if current_exclusives.nil?
+      puts 'Error: could not find current exclusives collection'
+    else
+      set_collection_handle(shopify, current_exclusives['id'], RandomGenerator.string(10))
+      set_collection_handle(shopify, rollover_config['new_exclusives_collection_id'], exclusives_handle)
+    end
+
     puts 'Setting new theme...'
     outcome << set_new_theme(shopify, rollover_config['new_theme_id'])
 
@@ -124,6 +135,21 @@ module Rollover
       puts "Unable to set handle for new alternate product: #{new_alternate_res.inspect}"
     end
     outcomes.all?
+  end
+
+  def self.set_collection_handle(shopify, collection_id, handle)
+    data = { custom_collection: {
+      id: collection_id,
+      handle: handle
+    } }
+    res = shopify.put("/custom_collections/#{collection_id}.json", body: data.to_json)
+    unless res.success?
+      puts
+      puts new_alternate_res.code
+      puts new_alternate_res.parsed_response
+      puts "Unable to set handle '#{handle}' for collection #{collection_id}"
+    end
+    res.success?
   end
 
 end

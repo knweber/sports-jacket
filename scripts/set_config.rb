@@ -16,6 +16,7 @@ Config['rollover'] = {
   past_collection_id: 19623280672,
   new_past_collection_product_ids: [9003059781],
   new_alternate_product_id: 409382027296,
+  new_exclusives_collection_id: 19622494240,
 }
 
 # Ellie production configs below
@@ -35,4 +36,5 @@ Config['rollover'] = {
   #past_collection_id: 1933967378,
   #new_past_collection_product_ids: [10016265938]
   #new_alternate_product_id: 44383469586,
+  #new_exclusives_collection_id: 2036793362,
 #}
