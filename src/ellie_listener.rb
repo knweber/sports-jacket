@@ -368,11 +368,11 @@ class EllieListener < Sinatra::Base
       my_customer = Customer.find_by(shopify_customer_id: shopify_customer_id)
       my_customer_id = my_customer.customer_id
       
-      my_now = DateTime.now.strftime("%Y-%m-%d %H:%M:%S")
+      my_now = Date.today
       puts my_sub.inspect
       temp_next_charge = my_sub.next_charge_scheduled_at.to_s
       puts temp_next_charge
-      my_next_charge = DateTime.strptime(temp_next_charge, "%Y-%m-%d %H:%M:%S %z") 
+      my_next_charge = my_sub.try(:next_charge_scheduled_at).try('+', 1.month)
       my_next_charge = my_next_charge >> 1
       puts "Now next charge date = #{my_next_charge.inspect}"
       next_charge_str = my_next_charge.strftime("%Y-%m-%d")
