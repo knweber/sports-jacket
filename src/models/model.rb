@@ -26,7 +26,9 @@ class Subscription < ActiveRecord::Base
     { id: '9109818066', title: 'VIP 3 Month Box' },
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
     { id: '52386037778', title: 'Go Time - 3 Item' },
+    { id: '44383469586', title: 'Go Time - 5 Item' },
     { id: '69026938898', title: 'Power Moves - 3 Item' },
+    { id: '69026316306', title: 'Power Moves - 5 Item' },
   ].freeze
 
   #for changing sizes
@@ -48,8 +50,6 @@ class Subscription < ActiveRecord::Base
   SKIPPABLE_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '10016265938', title: 'Ellie 3- Pack: ' },
-    { id: '52386037778', title: 'Go Time - 3 Item' },
-    { id: '44383469586', title: 'Go Time - 5 Item' },
     { id: '69026938898', title: 'Power Moves - 3 Item' },
     { id: '69026316306', title: 'Power Moves - 5 Item' },
   ].freeze
