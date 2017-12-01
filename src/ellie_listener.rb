@@ -376,7 +376,7 @@ class EllieListener < Sinatra::Base
         temp_next_charge = my_sub.next_charge_scheduled_at.to_s
         puts temp_next_charge
         my_next_charge = my_sub.try(:next_charge_scheduled_at).try('+', 1.month)
-        my_next_charge = my_next_charge >> 1
+        #my_next_charge = my_next_charge >> 1
         puts "Now next charge date = #{my_next_charge.inspect}"
         next_charge_str = my_next_charge.strftime("%Y-%m-%d")
         puts "We will change the next_charge_scheduled_at to: #{next_charge_str}"
