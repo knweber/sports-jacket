@@ -47,7 +47,11 @@ class Subscription < ActiveRecord::Base
   #for skips/alternates
   SKIPPABLE_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
-    { id: '10016265938', title: 'Ellie 3- Pack: ' }
+    { id: '10016265938', title: 'Ellie 3- Pack: ' },
+    { id: '52386037778', title: 'Go Time - 3 Item' },
+    { id: '44383469586', title: 'Go Time - 5 Item' },
+    { id: '69026938898', title: 'Power Moves - 3 Item' },
+    { id: '69026316306', title: 'Power Moves - 5 Item' },
   ].freeze
 
   scope :skippable_products, -> { where shopify_product_id: SKIPPABLE_PRODUCTS.pluck(:id) }
