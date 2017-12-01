@@ -212,7 +212,6 @@ class Subscription < ActiveRecord::Base
       next_charge_scheduled_at.try('>', Date.today.beginning_of_month),
       next_charge_scheduled_at.try('<', Date.today.end_of_month),
     ]
-    binding.pry
     skip_conditions.all?
   end
 
