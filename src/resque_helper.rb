@@ -4,7 +4,7 @@ require 'active_support/core_ext'
 require 'sinatra/activerecord'
 require 'httparty'
 require_relative 'logging'
-require_relative 'models/model'
+require_relative 'models/all'
 
 Dotenv.load
 
@@ -79,15 +79,6 @@ module ResqueHelper
 
     def new_product_properties(my_product_id)
         stuff_to_return = {}
-        alt_3pack_prod_id = ENV['ALT_ELLIE_3PACK_PRODUCT_ID']
-        alt_monthly_prod_id = ENV['ALT_MONTHLY_PRODUCT_ID']
-        monthly_box_prod_id = ENV['MONTHLY_PRODUCT_ID']
-        ellie_3pack_prod_id = ENV['ELLIE_3PACK_PRODUCT_ID']
-        
-        new_ellie_3pack_prod = CurrentProduct.find_by prod_id_key: 'ellie_3pack_prod_id'
-        new_ellie_3pack_id = new_ellie_3pack_prod.prod_id_value
-        new_alt3pack_prod = CurrentProduct.find_by prod_id_key: 'alt_3pack_prod_id'
-        new_alt3pack_prod_id = new_alt3pack_prod.prod_id_value
         new_monthly_prod = CurrentProduct.find_by prod_id_key: 'monthly_box_prod_id'
         new_monthly_prod_id = new_monthly_prod.prod_id_value
         new_alt_monthly_prod = CurrentProduct.find_by prod_id_key: 'alt_monthly_prod_id'

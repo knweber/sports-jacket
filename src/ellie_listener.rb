@@ -8,8 +8,7 @@ require 'shopify_api'
 require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
-#Dir[File.dirname(__FILE__) + '/models/*.rb'].each {|file| require file }
-require_relative 'models/model'
+require_relative 'models/all'
 require_relative 'recharge_api'
 require_relative 'logging'
 require_relative 'resque_helper'
