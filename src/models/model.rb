@@ -38,6 +38,10 @@ class Subscription < ActiveRecord::Base
     { id: '10870682450', title: 'Fit to Be Seen Ellie 3- Pack' },
     { id: '52386037778', title: 'Go Time - 3 Item' },
     { id: '44383469586', title: 'Go Time - 5 Item' },
+    { id: '78548729874', title: 'Go Time - 3 Item  Auto renew'},
+    { id: '78681669650', title: 'Go Time - 5 Item  Auto renew'},
+    { id: '78541520914', title: 'Power Moves - 3 Item  Auto renew'},
+    { id: '78657093650', title: 'Power Moves - 5 item  Auto renew'},
     { id: '69026938898', title: 'Power Moves - 3 Item' },
     { id: '69026316306', title: 'Power Moves - 5 Item' },
   ].freeze
