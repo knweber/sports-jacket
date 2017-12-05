@@ -209,13 +209,15 @@ class Subscription < ActiveRecord::Base
   end
 
   def skippable?
+    tz = ActiveSupport::TimeZone['Pacific Time (US & Canada)']
     skip_conditions = [
       !prepaid?,
       active?,
-      ActiveSupport::TimeZone['Pacific Time (US & Canada)'].now.day < 5,
+      #tz.now.day < 5,
       SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
-      next_charge_scheduled_at.try('>', Date.today.beginning_of_month),
-      next_charge_scheduled_at.try('<', Date.today.end_of_month),
+      next_charge_scheduled_at.try('>', tz.now.beginning_of_month),
+      next_charge_scheduled_at.try('<', tz.now.end_of_month),
+      next_charge_scheduled_at.try('>', tz.now)
     ]
     skip_conditions.all?
   end
