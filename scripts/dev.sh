@@ -16,7 +16,7 @@ docker build -t ${NAME}_worker -f Dockerfile.worker . &&
 docker run -d \
   --name ${NAME}_web \
   --env-file .env.docker \
-  -p 9292:9292 \
+  -p 29292:9292 \
   ${NAME}_web
 docker run -d \
   --name ${NAME}_worker \

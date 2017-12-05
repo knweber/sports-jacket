@@ -36,12 +36,23 @@ class Subscription < ActiveRecord::Base
     { id: '9109818066', title: 'VIP 3 Month Box' },
     { id: '10016265938', title: 'Ellie 3- Pack: ' },
     { id: '10870682450', title: 'Fit to Be Seen Ellie 3- Pack' },
+    { id: '44383469586', title: 'Go Time' },
+    { id: '52386037778', title: 'Go Time - 3 Item' },
+    { id: '78548729874', title: 'Go Time - 3 Item  Auto renew' },
+    { id: '78480408594', title: 'Go Time - 5 Item' },
+    { id: '78681669650', title: 'Go Time - 5 Item  Auto renew' },
+    { id: '69026938898', title: 'Power Moves - 3 Item' },
+    { id: '78541520914', title: 'Power Moves - 3 Item  Auto renew' },
+    { id: '69026316306', title: 'Power Moves - 5 Item' },
+    { id: '78657093650', title: 'Power Moves - 5 item  Auto renew' },
   ].freeze
 
   #for skips/alternates
   SKIPPABLE_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
-    { id: '10016265938', title: 'Ellie 3- Pack: ' }
+    { id: '10016265938', title: 'Ellie 3- Pack: ' },
+    { id: '69026938898', title: 'Power Moves - 3 Item' },
+    { id: '69026316306', title: 'Power Moves - 5 Item' },
   ].freeze
 
   scope :skippable_products, -> { where shopify_product_id: SKIPPABLE_PRODUCTS.pluck(:id) }
@@ -198,13 +209,15 @@ class Subscription < ActiveRecord::Base
   end
 
   def skippable?
+    tz = ActiveSupport::TimeZone['Pacific Time (US & Canada)']
     skip_conditions = [
       !prepaid?,
       active?,
-      Date.today.day < 5,
+      #tz.now.day < 5,
       SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
-      next_charge_scheduled_at.try('>', Date.today.beginning_of_month),
-      next_charge_scheduled_at.try('<', Date.today.end_of_month),
+      next_charge_scheduled_at.try('>', tz.now.beginning_of_month),
+      next_charge_scheduled_at.try('<', tz.now.end_of_month),
+      next_charge_scheduled_at.try('>', tz.now)
     ]
     skip_conditions.all?
   end

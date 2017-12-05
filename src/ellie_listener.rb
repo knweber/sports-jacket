@@ -51,7 +51,7 @@ class EllieListener < Sinatra::Base
     @tokens = {}
     @key = ENV['SHOPIFY_API_KEY']
     @secret = ENV['SHOPIFY_SHARED_SECRET']
-    @app_url = 'ellieactivesupport.com'
+    @app_url = 'www.ellieactivesportshelp.com'
     @default_headers = { 'Content-Type' => 'application/json' }
     @recharge_token = ENV['RECHARGE_ACCESS_TOKEN']
     @recharge_change_header = {
@@ -64,7 +64,7 @@ class EllieListener < Sinatra::Base
   end
 
   get '/install' do
-    shop = 'elliestaging.myshopify.com'
+    shop = 'ellieactive.myshopify.com'
     scopes = 'read_orders, write_orders, read_products, read_customers, write_customers'
 
     # construct the installation URL and redirect the merchant
@@ -139,19 +139,21 @@ class EllieListener < Sinatra::Base
     if shopify_id.nil?
       return [400, @default_headers, JSON.generate(error: 'shopify_id required')]
     end
-    data = Customer.joins(:subscriptions)
-      .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
-      .subscriptions
-      .where(status: 'ACTIVE', shopify_product_id: Subscription::CURRENT_PRODUCTS.pluck(:id))
-      .map{|sub| [sub, sub.orders]}
-    output = data.map{|i| transform_subscriptions(*i)}
+    customer_id = Customer.find_by(shopify_customer_id: shopify_id).try(:customer_id)
+    return [404, @default_headers, {error: 'not found'}.to_json] if customer_id.nil?
+    data = Subscription.where(
+        status: 'ACTIVE',
+        shopify_product_id: Subscription::CURRENT_PRODUCTS.pluck(:id),
+        customer_id: customer_id,
+    )
+    output = data.map{|sub| transform_subscriptions(sub, sub.orders)}
     [200, @default_headers, output.to_json]
   end
 
   get '/subscription/:subscription_id/sizes' do |subscription_id|
     sub = Subscription.find subscription_id
     #sub = Subscription.limit(200).sample
-    [404, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
+    return [404, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
     [200, @default_headers, sub.sizes.to_json]
   end
 
@@ -358,6 +360,7 @@ class EllieListener < Sinatra::Base
     extend ResqueHelper
     @queue = "skip_product"
     def self.perform(params)
+      update_success = false
       Resque.logger = Logger.new("#{Dir.getwd}/logs/skip_resque.log")
       puts "Got this: #{params.inspect}"
       #POST /subscriptions/<subscription_id>/set_next_charge_date
@@ -367,35 +370,37 @@ class EllieListener < Sinatra::Base
       my_sub = Subscription.find(subscription_id)
       my_customer = Customer.find_by(shopify_customer_id: shopify_customer_id)
       my_customer_id = my_customer.customer_id
-      
-      my_now = DateTime.now.strftime("%Y-%m-%d %H:%M:%S")
-      puts my_sub.inspect
-      temp_next_charge = my_sub.next_charge_scheduled_at.to_s
-      puts temp_next_charge
-      my_next_charge = DateTime.strptime(temp_next_charge, "%Y-%m-%d %H:%M:%S %z") 
-      my_next_charge = my_next_charge >> 1
-      puts "Now next charge date = #{my_next_charge.inspect}"
-      next_charge_str = my_next_charge.strftime("%Y-%m-%d")
-      puts "We will change the next_charge_scheduled_at to: #{next_charge_str}"
-      recharge_change_header = params['recharge_change_header']
-      body = {"date" => next_charge_str}.to_json
-      puts "Pushing new charge_date to ReCharge: #{body}"
-      my_update_sub = HTTParty.post("https://api.rechargeapps.com/subscriptions/#{subscription_id}/set_next_charge_date", :headers => recharge_change_header, :body => body, :timeout => 80)
-      puts my_update_sub.inspect
-      Resque.logger.info(my_update_sub.inspect)
 
-      update_success = false
-      if my_update_sub.code == 200
-        update_success = true
-        puts "****** Hooray We have no errors **********"
-        Resque.logger.info("****** Hooray We have no errors **********")
-        puts "We are adding to skip_reasons table"
-        skip_reason = SkipReason.create(customer_id:  my_customer_id, shopify_customer_id:  shopify_customer_id, subscription_id:  subscription_id, reason:  my_reason, skipped_to:  next_charge_str, skip_status:  update_success, created_at:  my_now )
-        puts skip_reason.inspect
-      else
-        puts "We were not able to update the subscription"
-        Resque.logger.info("We were not able to update the subscription")
+      begin
+        
+        my_now = Date.today
+        puts my_sub.inspect
+        temp_next_charge = my_sub.next_charge_scheduled_at.to_s
+        puts temp_next_charge
+        my_next_charge = my_sub.try(:next_charge_scheduled_at).try('+', 1.month)
+        #my_next_charge = my_next_charge >> 1
+        puts "Now next charge date = #{my_next_charge.inspect}"
+        next_charge_str = my_next_charge.strftime("%Y-%m-%d")
+        puts "We will change the next_charge_scheduled_at to: #{next_charge_str}"
+        recharge_change_header = params['recharge_change_header']
+        body = {"date" => next_charge_str}.to_json
+        puts "Pushing new charge_date to ReCharge: #{body}"
+        my_update_sub = HTTParty.post("https://api.rechargeapps.com/subscriptions/#{subscription_id}/set_next_charge_date", :headers => recharge_change_header, :body => body, :timeout => 80)
+        update_success = my_update_sub.success?
+        puts my_update_sub.inspect
+        Resque.logger.info(my_update_sub.inspect)
+      rescue Exception => e
+        Resque.logger.error(e.inspect)
       end
+
+      update_success = true
+      puts "****** Hooray We have no errors **********"
+      Resque.logger.info("****** Hooray We have no errors **********")
+      puts "We are adding to skip_reasons table"
+      skip_reason = SkipReason.create(customer_id:  my_customer_id, shopify_customer_id:  shopify_customer_id, subscription_id:  subscription_id, reason:  my_reason, skipped_to:  next_charge_str, skip_status:  update_success, created_at:  my_now )
+      puts skip_reason.inspect
+      puts "We were not able to update the subscription" unless update_success
+      Resque.logger.info("We were not able to update the subscription") unless update_success
 
       
     end
