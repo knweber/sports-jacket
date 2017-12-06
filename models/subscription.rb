@@ -1,7 +1,7 @@
 require 'active_record'
 require 'active_record/base'
-require_relative '../recharge_api'
-require_relative '../async'
+require_relative '../lib/recharge_api'
+require_relative '../lib/async'
 require_relative 'application'
 
 class Subscription < ActiveRecord::Base
@@ -19,17 +19,14 @@ class Subscription < ActiveRecord::Base
 
   after_save :update_line_items
 
+  # products that get shipped more than once per billing cycle
   PREPAID_PRODUCTS = [
     { id: '9421067602', title: '3 MONTHS' },
     { id: '9109818066', title: 'VIP 3 Month Box' },
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
-    { id: '52386037778', title: 'Go Time - 3 Item' },
-    { id: '44383469586', title: 'Go Time - 5 Item' },
-    { id: '69026938898', title: 'Power Moves - 3 Item' },
-    { id: '69026316306', title: 'Power Moves - 5 Item' },
   ].freeze
 
-  #for changing sizes
+  # for changing sizes
   CURRENT_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '9175678162', title: 'VIP 3 Monthly Box' },
@@ -44,7 +41,7 @@ class Subscription < ActiveRecord::Base
     { id: '69026316306', title: 'Power Moves - 5 Item' },
   ].freeze
 
-  #for skips/alternates
+  # for skips/alternates
   SKIPPABLE_PRODUCTS = [
     { id: '8204555081', title: 'Monthly Box' },
     { id: '10016265938', title: 'Ellie 3- Pack: ' },

@@ -1,7 +1,7 @@
 ENV['RACK_ENV'] = 'test'
 
-require_relative '../src/ellie_listener.rb'
-require_relative '../src/logging.rb'
+require_relative '../api/ellie_listener.rb'
+require_relative '../lib/logging.rb'
 require_relative 'helpers'
 require 'test/unit'
 require 'rack/test'

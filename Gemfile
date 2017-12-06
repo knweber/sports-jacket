@@ -1,17 +1,19 @@
 source "https://rubygems.org"
 ruby "2.4.0"
-gem 'sinatra'
-gem 'puma'
-gem 'httparty'
-gem 'dotenv'
-gem "resque"
-gem "shopify_api"
 gem 'activerecord'
-gem 'sinatra-activerecord'
+gem 'activesupport'
+gem 'dotenv'
+gem 'httparty'
 gem 'pg'
-gem "activesupport"
-gem "rake"
-gem "redis", "=3.3.5"
+gem 'puma'
+gem 'rack'
+gem 'rack-contrib'
+gem 'rake'
+gem 'redis', '=3.3.5'
+gem 'resque'
+gem 'shopify_api'
+gem 'sinatra'
+gem 'sinatra-activerecord'
 
 group :development do
   gem 'pry'

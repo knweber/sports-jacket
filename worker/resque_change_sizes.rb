@@ -1,5 +1,5 @@
 require 'resque'
-require_relative 'recharge_api'
+require_relative '../lib/recharge_api'
 
 class ChangeSizes
 

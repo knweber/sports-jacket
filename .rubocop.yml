@@ -12,3 +12,9 @@ Layout/MultilineMethodCallIndentation:
 
 Style/TrailingCommaInLiteral:
   Enabled: False
+
+Layout/SpaceInsideBlockBraces:
+  Enabled: False
+
+Layout/LeadingCommentSpace:
+  Enabled: False

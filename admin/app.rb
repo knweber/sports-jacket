@@ -8,11 +8,9 @@ require 'shopify_api'
 require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
-require_relative 'models/all'
-require_relative 'recharge_api'
-require_relative 'logging'
-require_relative 'resque_helper'
-require_relative 'resque_change_sizes'
+require_relative '../models/all'
+require_relative '../lib/recharge_api'
+require_relative '../lib/logging'
 
 class EllieAdmin < Sinatra::Base
   register Sinatra::ActiveRecordExtension
@@ -24,6 +22,8 @@ class EllieAdmin < Sinatra::Base
 
     enable :logging
     set :server, :puma
+    set :dump_errors, true
+    set :static, true
     #set :protection, :except => [:json_csrf]
 
     mime_type :application_javascript, 'application/javascript'
