@@ -1,0 +1,19 @@
+FROM debian:stretch
+#FROM ruby
+MAINTAINER FAMBRANDS
+
+EXPOSE 5678
+
+# Install wget, sox and flite
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y ruby ruby-dev zlib1g-dev build-essential && \
+    gem install resque-web && \
+    apt-get autoremove -y ruby-dev zlib1g-dev build-essential && \
+    apt-get clean -y
+
+ENTRYPOINT ["resque-web", "-FL"]
+
+CMD ["-h"]
+
+WORKDIR /data
