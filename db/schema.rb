@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171128205635) do
+ActiveRecord::Schema.define(version: 20171207012622) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -129,6 +129,9 @@ ActiveRecord::Schema.define(version: 20171128205635) do
     t.jsonb "val"
     t.datetime "created_at", default: -> { "now()" }, null: false
     t.datetime "updated_at", default: -> { "now()" }, null: false
+    t.string "theme_id"
+    t.datetime "active_start"
+    t.datetime "active_end"
   end
 
   create_table "current_products", force: :cascade do |t|
@@ -257,6 +260,14 @@ ActiveRecord::Schema.define(version: 20171128205635) do
     t.index ["shopify_order_id"], name: "index_orders_on_shopify_order_id"
     t.index ["shopify_order_number"], name: "index_orders_on_shopify_order_number"
     t.index ["transaction_id"], name: "index_orders_on_transaction_id"
+  end
+
+  create_table "product_tags", force: :cascade do |t|
+    t.string "product_id", null: false
+    t.string "tag", null: false
+    t.datetime "active_start"
+    t.datetime "active_end"
+    t.string "theme_id"
   end
 
   create_table "skip_reasons", force: :cascade do |t|

@@ -3,8 +3,8 @@ require 'dotenv'
 require 'active_support/core_ext'
 require 'sinatra/activerecord'
 require 'httparty'
-require_relative 'logging'
-require_relative 'models/all'
+require_relative '../lib/logging'
+require_relative '../models/all'
 
 Dotenv.load
 

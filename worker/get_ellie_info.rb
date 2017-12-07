@@ -8,8 +8,8 @@ require 'sinatra/activerecord'
 require 'active_support/core_ext'
 require 'resque'
 require_relative 'worker_helper'
-require_relative 'logging'
 require_relative 'resque_helper'
+require_relative '../lib/logging'
 
 class Object
   include Logging

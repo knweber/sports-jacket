@@ -10,13 +10,12 @@ ENV RECHARGE_SLEEP_TIME=1
 ENV REDIS_URL=""
 ENV QUEUE="default"
 
-RUN mkdir -p /app/tmp/pids /app/resque_pid
 VOLUME /app/logs
 WORKDIR /app
 
 # update bundler to prevent errors concerning the lockfile
 RUN gem install bundler
-ADD Gemfile Gemfile.lock /app/
+ADD Rakefile Gemfile Gemfile.lock /app/
 RUN bundle install --deployment
 COPY lib/ /app/lib
 COPY models/ /app/models

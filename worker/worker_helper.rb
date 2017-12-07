@@ -1,5 +1,5 @@
 #file worker_helper.rb
-require_relative 'logging'
+require_relative '../lib/logging'
 
 module EllieHelper
     

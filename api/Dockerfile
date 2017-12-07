@@ -11,7 +11,6 @@ ENV RECHARGE_ACCESS_TOKEN=""
 ENV RECHARGE_SLEEP_TIME=1
 ENV REDIS_URL=""
 
-RUN mkdir -p /app/tmp/pids /app/resque_pid
 VOLUME /app/logs
 WORKDIR /app
 

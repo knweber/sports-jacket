@@ -7,9 +7,9 @@ require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
 
-require_relative '../models/all'
-require_relative 'get_ellie_info'
-require_relative 'resque_helper'
+require_relative 'models/all'
+require_relative 'worker/get_ellie_info'
+require_relative 'worker/resque_helper'
 
 Resque.logger =
   if ENV['production']

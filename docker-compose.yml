@@ -10,13 +10,17 @@ services:
       context: .
       dockerfile: worker/Dockerfile.resque_web
   ellie_web:
+    image: ellie_web
     build:
       context: .
       dockerfile: api/Dockerfile
-    image: ellie_web
+    env_file: .env
+    ports:
+      - 9292:9292
   ellie_worker:
     image: ellie_worker
     build:
       context: .
       dockerfile: worker/Dockerfile
+    env_file: .env
 

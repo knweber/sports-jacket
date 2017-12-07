@@ -14,6 +14,7 @@ gem 'resque'
 gem 'shopify_api'
 gem 'sinatra'
 gem 'sinatra-activerecord'
+gem 'recharge-api'
 
 group :development do
   gem 'pry'
