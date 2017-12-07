@@ -23,9 +23,11 @@ class EllieListener < Sinatra::Base
     set :server, :puma
     set :database, ENV['DATABASE_URL']
     #set :protection, :except => [:json_csrf]
-
     mime_type :application_javascript, 'application/javascript'
     mime_type :application_json, 'application/json'
+
+    # on webserver startup set the current theme id
+    Resque.enqueue_to(:default, 'Rollover', :set_current_theme_id)
   end
 
   def initialize

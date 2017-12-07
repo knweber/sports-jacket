@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171207012622) do
+ActiveRecord::Schema.define(version: 20171204183551) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -129,9 +129,6 @@ ActiveRecord::Schema.define(version: 20171207012622) do
     t.jsonb "val"
     t.datetime "created_at", default: -> { "now()" }, null: false
     t.datetime "updated_at", default: -> { "now()" }, null: false
-    t.string "theme_id"
-    t.datetime "active_start"
-    t.datetime "active_end"
   end
 
   create_table "current_products", force: :cascade do |t|

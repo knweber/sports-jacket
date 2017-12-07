@@ -17,8 +17,6 @@ WORKDIR /app
 RUN gem install bundler
 ADD Rakefile Gemfile Gemfile.lock /app/
 RUN bundle install --deployment
-COPY lib/ /app/lib
-COPY models/ /app/models
-COPY worker/ /app/worker/
+COPY ./ /app/
 
-ENTRYPOINT ["rake", "resque:work"]
+CMD ["rake", "resque:work"]

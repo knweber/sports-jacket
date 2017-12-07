@@ -23,4 +23,4 @@ COPY models/ /app/models/
 COPY api/ /app/api/
 
 WORKDIR /app/api
-ENTRYPOINT ["puma"]
+CMD ["puma"]
