@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171128205635) do
+ActiveRecord::Schema.define(version: 20171206193425) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -130,6 +130,13 @@ ActiveRecord::Schema.define(version: 20171128205635) do
     t.string "prod_id_value"
     t.index ["prod_id_key"], name: "index_current_products_on_prod_id_key"
     t.index ["prod_id_value"], name: "index_current_products_on_prod_id_value"
+  end
+
+  create_table "customer_info", force: :cascade do |t|
+    t.string "shopify_id"
+    t.string "subscription_id"
+    t.index ["shopify_id"], name: "index_customer_info_on_shopify_id"
+    t.index ["subscription_id"], name: "index_customer_info_on_subscription_id"
   end
 
   create_table "customers", force: :cascade do |t|
@@ -306,8 +313,10 @@ ActiveRecord::Schema.define(version: 20171128205635) do
     t.integer "order_day_of_week"
     t.jsonb "raw_line_item_properties"
     t.datetime "synced_at"
+    t.integer "expire_after_specific_number_charges"
     t.index ["address_id"], name: "index_subscriptions_on_address_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
+    t.index ["expire_after_specific_number_charges"], name: "index_subscriptions_on_expire_after_specific_number_charges"
     t.index ["subscription_id"], name: "index_subscriptions_on_subscription_id"
   end
 
