@@ -13,5 +13,7 @@ RUN apt-get update && \
 
 WORKDIR /data
 
-#CMD ["resque-web", "-FL", "-r", "$REDIS_URL"]
-CMD resque-web -FL -r $REDIS_URL
+# NOTE: This does not use the $REDIS_URL variable like the rest of the
+# application because resque-web does not parse the url correctly. Only pass
+# values in the form of 'host:port'
+CMD resque-web -FL -r $RESQUE_WEB_REDIS

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Config Listing</title>
+    <style type="text/css" media="screen">
+      .config {
+        float: left;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Config Listing</h1>
+    <a href="/config/new">New Config</a>
+    <div>
+      <% configs.each do |config| %>
+        <div>
+          <h4><%= config.key %></h4>
+          <pre><code><%= config.val %></code></pre>
+          <div>
+            <form action="/config/<%= config.id %>" method="get" accept-charset="utf-8">
+              <button>Edit</button>
+            </form>
+            <form action="/config/<%= config.id %>" method="post" accept-charset="utf-8">
+              <input type="hidden" name="_method" id="_method" value="delete" />
+              <button onclick="confirm('Delete <%= config.key %> configuration?')">Delete</button>
+            </form>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </body>
+</html>

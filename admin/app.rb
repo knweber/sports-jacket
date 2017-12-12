@@ -22,7 +22,7 @@ class EllieAdmin < Sinatra::Base
   PAGE_LIMIT = 250
 
   configure do
-    enable :logging
+    enable :logging, :methlod_override
     set :server, :puma
     set :dump_errors, true
     set :static, true
@@ -52,28 +52,51 @@ class EllieAdmin < Sinatra::Base
   end
 
   get '/' do
-    [200, {}, template('index', {})]
+    template 'index'
   end
 
   get '/config' do
+    configs = Config.all
+    puts "Configs #{configs.inspect}"
+    configs_out = configs.map{|c| [c.key, c.val]}.to_h
+    template('config/index', configs: configs_out)
+  end
+
+  get '/config/new' do
+    config = Config.new
+    template('config/new', key: config.key, val: config.val)
+  end
+
+  get '/config/:key/edit' do |key|
+    config = Config.find_by(key: key)
+    template('config/edit', config: config)
+  end
+
+  get '/config.json' do
     configs = Config.all.map{|c| [c.key, c.val]}.to_h
     [200, @json_headers, configs.to_json]
   end
 
-  get '/config/:id' do |id|
-    [200, @json_headers, Config[id].to_json]
+  get '/config/:key.json' do |key|
+    [200, @json_headers, Config[key].to_json]
   end
 
-  post '/config/:id' do |id|
-    Config[id] = JSON.parse request.body.read
+  post 'config/:key' do |key|
+    Config.find_or_initialize_by(key: key)
+      .update(filter_params(Config, params))
+    redirect '/config', 302
   end
 
-  put '/config/:id' do |id|
-    Config[id] = JSON.parse request.body.read
+  post '/config/:key.json' do |key|
+    Config[key] = JSON.parse request.body.read
   end
 
-  delete '/config/:id' do |id|
-    Config[id].delete
+  put '/config/:key.json' do |key|
+    Config[key] = JSON.parse request.body.read
+  end
+
+  delete '/config/:key' do |key|
+    Config[key].delete
   end
 
   get '/product_tags/new' do
@@ -83,7 +106,7 @@ class EllieAdmin < Sinatra::Base
       themes: ShopifyAPI::Theme.all.map{|t| [t.id, t.name]}.to_h,
       products: Product.all.pluck(:shopify_id, :title).to_h,
     }
-    [200, {}, template('/product_tags/new', vars)]
+    [200, {}, template('product_tags/new', vars)]
   end
 
   get '/product_tags' do
@@ -107,7 +130,7 @@ class EllieAdmin < Sinatra::Base
       theme_name: theme.name,
       product_name: Product.find(product_tag.product_id).name
     }
-    [200, {}, template('/product_tags/view', vars)]
+    [200, {}, template('product_tags/view', vars)]
   end
 
   get '/product_tags/:id/edit' do |id|
@@ -118,7 +141,7 @@ class EllieAdmin < Sinatra::Base
       themes: theme.name,
       products: Product.all.pluck(:shopify_id, :title).to_h,
     }
-    [200, {}, template('/product_tags/edit', vars)]
+    [200, {}, template('product_tags/edit', vars)]
   end
 
   get '/product_tags/:id.json' do |id|
@@ -131,13 +154,19 @@ class EllieAdmin < Sinatra::Base
   end
 
   put '/product_tags/:id' do |id|
-    ProductTag.find(id).update! params
+    ProductTag.find(id).update!(filter_params(ProductTag, params))
     200
   end
 
+  put '/product_tags/:id.json' do |id|
+    json = JSON.parse request.body.read
+    product_tag = ProductTag.find(id).update!(json)
+    [200, @json_headers, product_tag.to_json]
+  end
+
   post '/product_tags' do
-    product = ProductTag.create! params
-    [201, @json_headers, product.to_json]
+    product_tag = ProductTag.create!(filter_params(ProductTag, params))
+    [201, @json_headers, product_tag.to_json]
   end
 
   delete '/product_tags/:id' do |id|
@@ -156,11 +185,17 @@ class EllieAdmin < Sinatra::Base
 
   private
 
-  def template(name, vars, safe_level = 0, trim_mode = '>')
+  def template(name, vars = {}, safe_level = 0, trim_mode = '>')
     namespace = OpenStruct.new(vars).instance_eval { binding }
     File.open("#{File.dirname __FILE__}/views/#{name}.html.erb", 'r') do |file|
       template = ERB.new(file.read, safe_level, trim_mode)
       template.result(namespace)
+    end
+  end
+
+  def filter_params(klass, params)
+    params.select do |k, _|
+      klass.attributes.keys.include? k
     end
   end
 end

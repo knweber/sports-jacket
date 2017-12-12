@@ -33,11 +33,11 @@
             <td><%= tag.active? %></td>
             <td>
               <form action="/product_tags/<%= tag.id %>/edit">
-                <submit>Edit</submit>
+                <button>Edit</button>
               </form>
               <form action="/product_tags/<%= tag.id %>">
                 <input type="hidden" name="_method" id="_method" value="delete" />
-                <submit>Delete</submit>
+                <button>Delete</button>
               </form>
             </td>
           </tr>

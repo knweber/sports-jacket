@@ -8,7 +8,39 @@
   <body>
     <form action="/product_tags/<%= product_tag.id %>" method="post" accept-charset="utf-8">
       <input type="hidden" name="_method" id="_method" value="put" />
-      <%= File.new("#{File.dirname __FILE__}/_form_fields.html.erb").read %>
+      <div>
+        <label for="product_id">Product ID:</label>
+        <select name="product_id" id="product_id" multiple size="1">
+          <% products.each do |products| %>
+            <option value="<%= product.id %>" <%= product.id == product_tag.product_id ? ' selected ' : '' %> ><%= product.title %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label for="tag">Tag:</label>
+        <input type="text" name="tag" id="tag" value="" placeholder="current" />
+      </div>
+
+      <div>
+        <select name="theme_id" id="theme_id" multiple size="1">
+          <% themes.each do |theme| %>
+            <option value="<%= theme.id %>"<%= theme.id == product_tag.theme_id ? ' selected ' : '' %>><%= theme.name %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label for="active_start">Active Start:</label>
+        <input type="datetime-local" name="active_start" id="active_start" value="" />
+      </div>
+
+      <div>
+        <label for="active_end">Active End:</label>
+        <input type="datetime-local" name="active_end" id="active_end" value="" />
+      </div>
+
+      <input type="submit" name="_submit" id="_submit" value="Update" />
     </form>
   </body>
 </html>
