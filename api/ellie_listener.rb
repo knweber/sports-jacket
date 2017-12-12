@@ -289,13 +289,15 @@ class EllieListener < Sinatra::Base
   end
 
   post '/subscription_skip' do
+    #json = JSON.parse request.body
     puts "Received skip request"
     puts params.inspect
     params['recharge_change_header'] = @recharge_change_header
     my_action = params['action']
     my_now = Date.today.day
     puts "Day of the month is #{my_now}"
-    if my_now < 5
+    tz = ActiveSupport::TimeZone['Pacific Time (US & Canada)']
+    if tz.now.day < 5
       if my_action == "skip_month"
         Resque.enqueue_to(:skip_product, 'SubscriptionSkip', params)
       else

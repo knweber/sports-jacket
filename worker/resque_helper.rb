@@ -64,13 +64,23 @@ module ResqueHelper
         my_end_month_str = my_end_month.strftime("%Y-%m-%d 23:59:59")
         puts "my_end_month_str = #{my_end_month_str}"
         logger.info "my_end_month_str = #{my_end_month_str}"
-        alt_3pack_prod_id = ENV['ALT_ELLIE_3PACK_PRODUCT_ID']
-        alt_monthly_prod_id = ENV['ALT_MONTHLY_PRODUCT_ID']
-        monthly_box_prod_id = ENV['MONTHLY_PRODUCT_ID']
-        ellie_3pack_prod_id = ENV['ELLIE_3PACK_PRODUCT_ID']
-        logger.info "alt_monthly_prod_id = #{alt_monthly_prod_id}"
+        #alt_3pack_prod_id = ENV['ALT_ELLIE_3PACK_PRODUCT_ID']
+        #alt_monthly_prod_id = ENV['ALT_MONTHLY_PRODUCT_ID']
+        #monthly_box_prod_id = ENV['MONTHLY_PRODUCT_ID']
+        #ellie_3pack_prod_id = ENV['ELLIE_3PACK_PRODUCT_ID']
+        #logger.info "alt_monthly_prod_id = #{alt_monthly_prod_id}"
 
-        subs_update = "insert into subscriptions_updated (subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id) select subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id from subscriptions where status = 'ACTIVE' and next_charge_scheduled_at > \'#{my_end_month_str}\' and (shopify_product_id = \'#{alt_monthly_prod_id}\' or shopify_product_id = \'#{alt_3pack_prod_id}\' or shopify_product_id = \'#{monthly_box_prod_id}\' or shopify_product_id = \'#{ellie_3pack_prod_id}\')"
+        #subs_update = "insert into subscriptions_updated (subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id) select subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id from subscriptions where status = 'ACTIVE' and next_charge_scheduled_at > \'#{my_end_month_str}\' and (shopify_product_id = \'#{alt_monthly_prod_id}\' or shopify_product_id = \'#{alt_3pack_prod_id}\' or shopify_product_id = \'#{monthly_box_prod_id}\' or shopify_product_id = \'#{ellie_3pack_prod_id}\')"
+        bad_prod_id1 = "10016265938"
+        bad_prod_id2 = "10870682450"
+        bad_prod_id3 = "44383469586"
+        bad_prod_id4 = "820544081"
+        
+
+        subs_update = "insert into subscriptions_updated (subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id) select subscription_id, customer_id, updated_at, next_charge_scheduled_at, product_title, status, sku, shopify_product_id, shopify_variant_id from subscriptions where status = 'ACTIVE' and updated_at > '2017-11-30' and (shopify_product_id = \'#{bad_prod_id1}\' or shopify_product_id = \'#{bad_prod_id2}\' or shopify_product_id = \'#{bad_prod_id3}\' or shopify_product_id = \'#{bad_prod_id4}\')"
+
+
+
         conn.exec(subs_update)
         conn.close
         logger.info "Done setting up subscriptions_updated table!"

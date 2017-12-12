@@ -1610,7 +1610,7 @@ module EllieHelper
         myuri = URI.parse(uri)
         conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     
-        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)"
+        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties, expire_after_specific_number_charges) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)"
         #conn.prepare('statement1', "#{my_insert}")
         my_line_item_insert = "insert into sub_line_items (subscription_id, name, value) values ($1, $2, $3)"
         #conn.prepare('statement2', "#{my_line_item_insert}")
@@ -1657,9 +1657,10 @@ module EllieHelper
               order_day_of_month = sub['order_day_of_month']
     
               properties  = sub['properties'].to_json
+              expire_after = sub['expire_after_specific_number_of_charges'].to_i
               #conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
     
-              subscription_hash = {"subscription_id" => id, "address_id" => address_id, "customer_id" => customer_id, "created_at" => created_at, "updated_at" => updated_at, "next_charge_scheduled_at" => next_charge_scheduled_at, "cancelled_at" => cancelled_at, "product_title" => product_title, "price" => price, "quantity" => quantity, "status" => status, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "order_interval_unit" => order_interval_unit, "order_interval_frequency" => order_interval_frequency, "charge_interval_frequency" => charge_interval_frequency, "order_day_of_month" => order_day_of_month, "order_day_of_week" => order_day_of_week, "properties" => properties}
+              subscription_hash = {"subscription_id" => id, "address_id" => address_id, "customer_id" => customer_id, "created_at" => created_at, "updated_at" => updated_at, "next_charge_scheduled_at" => next_charge_scheduled_at, "cancelled_at" => cancelled_at, "product_title" => product_title, "price" => price, "quantity" => quantity, "status" => status, "shopify_product_id" => shopify_product_id, "shopify_variant_id" => shopify_variant_id, "sku" => sku, "order_interval_unit" => order_interval_unit, "order_interval_frequency" => order_interval_frequency, "charge_interval_frequency" => charge_interval_frequency, "order_day_of_month" => order_day_of_month, "order_day_of_week" => order_day_of_week, "properties" => properties, "expire_after_specific_number_charges" => expire_after}
     
               insert_update_subscription(uri, subscription_hash)
     
@@ -1746,15 +1747,16 @@ module EllieHelper
         order_day_of_month = subscription_hash['order_day_of_month']
         order_day_of_week = subscription_hash['order_day_of_week']
         properties = subscription_hash['properties']
+        expire_after = subscription_hash['expire_after_specific_number_charges']
         #new_properties = eval(properties)
     
         myuri = URI.parse(uri)
         my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     
-        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)"
+        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties, expire_after_specific_number_charges) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)"
     
         my_conn.prepare('statement1', "#{my_insert}")
-        my_temp_update = "update subscriptions set address_id = $1, customer_id = $2, created_at = $3, updated_at = $4, next_charge_scheduled_at = $5, cancelled_at = $6, product_title = $7, price = $8, quantity = $9, status = $10, shopify_product_id = $11, shopify_variant_id = $12, sku = $13, order_interval_unit = $14, order_interval_frequency = $15, charge_interval_frequency = $16, order_day_of_month = $17, order_day_of_week = $18, raw_line_item_properties = $19 where subscription_id = $20"
+        my_temp_update = "update subscriptions set address_id = $1, customer_id = $2, created_at = $3, updated_at = $4, next_charge_scheduled_at = $5, cancelled_at = $6, product_title = $7, price = $8, quantity = $9, status = $10, shopify_product_id = $11, shopify_variant_id = $12, sku = $13, order_interval_unit = $14, order_interval_frequency = $15, charge_interval_frequency = $16, order_day_of_month = $17, order_day_of_week = $18, raw_line_item_properties = $19, expire_after_specific_number_charges = $20 where subscription_id = $21"
         my_conn.prepare('statement2', "#{my_temp_update}")
         temp_select = "select * from subscriptions where subscription_id = \'#{subscription_id}\'"
         temp_result = my_conn.exec(temp_select)
@@ -1765,11 +1767,11 @@ module EllieHelper
             #order_id = myrow['order_id']
             logger.info "updating subscription ID #{subscription_id}"
     
-            indy_result = my_conn.exec_prepared('statement2', [ address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties, subscription_id])
+            indy_result = my_conn.exec_prepared('statement2', [ address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties, expire_after, subscription_id])
             logger.debug indy_result.inspect
           end
         else
-          my_conn.exec_prepared('statement1', [ subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
+          my_conn.exec_prepared('statement1', [ subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties, expire_after ])
           logger.info "inserted subscription #{subscription_id}"
         end
         my_conn.close
@@ -1783,7 +1785,7 @@ module EllieHelper
         myuri = URI.parse(uri)
         conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
     
-        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)"
+        my_insert = "insert into subscriptions (subscription_id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, raw_line_item_properties, expire_after_specific_number_charges) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)"
         conn.prepare('statement1', "#{my_insert}")
         my_line_item_insert = "insert into sub_line_items (subscription_id, name, value) values ($1, $2, $3)"
         conn.prepare('statement2', "#{my_line_item_insert}")
@@ -1827,7 +1829,8 @@ module EllieHelper
               order_day_of_month = sub['order_day_of_month']
     
               properties  = sub['properties'].to_json
-              conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties ])
+              expire_after = sub['expire_after_specific_number_of_charges'].to_i
+              conn.exec_prepared('statement1', [id, address_id, customer_id, created_at, updated_at, next_charge_scheduled_at, cancelled_at, product_title, price, quantity, status, shopify_product_id, shopify_variant_id, sku, order_interval_unit, order_interval_frequency, charge_interval_frequency, order_day_of_month, order_day_of_week, properties, expire_after ])
     
     
               logger.debug sub['properties'].inspect

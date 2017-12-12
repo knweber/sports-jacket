@@ -348,8 +348,10 @@ ActiveRecord::Schema.define(version: 20171208224248) do
     t.integer "order_day_of_week"
     t.jsonb "raw_line_item_properties"
     t.datetime "synced_at"
+    t.integer "expire_after_specific_number_charges"
     t.index ["address_id"], name: "index_subscriptions_on_address_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
+    t.index ["expire_after_specific_number_charges"], name: "index_subscriptions_on_expire_after_specific_number_charges"
     t.index ["subscription_id"], name: "index_subscriptions_on_subscription_id"
   end
 

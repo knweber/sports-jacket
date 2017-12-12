@@ -19,15 +19,24 @@ class Subscription < ActiveRecord::Base
 
   after_save :update_line_items
 
-  def self.current_products
-    ProductTag.active.where(tag: 'current').pluck(:id)
+  # the options this method takes are:
+  # * :time - a valid datetime string / object
+  # * :theme_id - the theme the product tag is associated with
+  def self.current_products(options = {})
+    ProductTag.active(options).where(tag: 'current').pluck(:id)
   end
 
-  def self.prepaid_products
+  # the options this method takes are:
+  # * :time - a valid datetime string / object
+  # * :theme_id - the theme the product tag is associated with
+  def self.prepaid_products(options = {})
     ProductTag.active.where(tag: 'prepaid').pluck(:id)
   end
 
-  def self.skippable_products
+  # the options this method takes are:
+  # * :time - a valid datetime string / object
+  # * :theme_id - the theme the product tag is associated with
+  def self.skippable_products(options = {})
     ProductTag.active.where(tag: 'skippable').pluck(:id)
   end
 
