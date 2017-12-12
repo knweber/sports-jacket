@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Edit Product Tag: <%= product_tag.id %></title>
+  </head>
+  <body>
+    <form action="/product_tags/<%= product_tag.id %>" method="post" accept-charset="utf-8">
+      <input type="hidden" name="_method" id="_method" value="put" />
+      <%= File.new("#{File.dirname __FILE__}/_form_fields.html.erb").read %>
+    </form>
+  </body>
+</html>

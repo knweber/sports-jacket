@@ -8,9 +8,9 @@ require 'sinatra/activerecord/rake'
 require 'resque/tasks'
 
 require_relative 'models/all'
-require_relative 'worker/get_ellie_info'
-require_relative 'worker/resque_helper'
-require_relative 'worker/rollover'
+Dir['worker/**/*.rb'].each do |file|
+  require_relative file
+end
 
 Resque.logger =
   if ENV['production']

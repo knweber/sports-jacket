@@ -15,8 +15,8 @@ VOLUME /app/logs
 WORKDIR /app
 
 # update bundler to prevent errors concerning the lockfile
-RUN gem install bundler
-ADD Gemfile Gemfile.lock /app/
+RUN gem install --no-document bundler
+COPY Gemfile Gemfile.lock /app/
 RUN bundle install --deployment
 COPY lib/ /app/lib/
 COPY models/ /app/models/

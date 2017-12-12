@@ -19,9 +19,17 @@ class Subscription < ActiveRecord::Base
 
   after_save :update_line_items
 
+  def self.current_products
+    ProductTag.active.where(tag: 'current').pluck(:id)
+  end
 
-  scope :skippable_products, -> { where shopify_product_id: SKIPPABLE_PRODUCTS.pluck(:id) }
-  scope :current_products, -> { where shopify_product_id: CURRENT_PRODUCTS.pluck(:id), status: 'ACTIVE' }
+  def self.prepaid_products
+    ProductTag.active.where(tag: 'prepaid').pluck(:id)
+  end
+
+  def self.skippable_products
+    ProductTag.active.where(tag: 'skippable').pluck(:id)
+  end
 
   # Defines the relationship between the local database table and the remote
   # Recharge data format
@@ -179,7 +187,7 @@ class Subscription < ActiveRecord::Base
       !prepaid?,
       active?,
       tz.now.day < 5,
-      SKIPPABLE_PRODUCTS.pluck(:id).include?(shopify_product_id),
+      Subscription.skippable_products.include?(shopify_product_id),
       next_charge_scheduled_at.try('>', tz.now.beginning_of_month),
       next_charge_scheduled_at.try('<', tz.now.end_of_month),
       next_charge_scheduled_at.try('>', tz.now),

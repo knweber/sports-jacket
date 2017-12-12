@@ -1,12 +1,12 @@
 require 'dotenv'
 Dotenv.load
 require 'active_record'
-require 'shopify_api'
 require 'active_support/core_ext'
 #require 'recharge_api'
 Dir[File.dirname(__FILE__) + '/../lib/*.rb'].each do |file|
-  require_relative file
+  require file
 end
+require_relative '../lib/shopify_init.rb'
 require_relative '../models/all'
 require_relative '../test/helpers.rb'
 

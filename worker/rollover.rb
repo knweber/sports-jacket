@@ -1,9 +1,8 @@
 require 'resque'
-require 'shopify_api'
 require_relative '../lib/async'
+require_relative '../lib/shopify_init.rb'
 require_relative '../models/config'
 
-ShopifyAPI::Base.site = "https://#{ENV['SHOPIFY_API_KEY']}:#{ENV['SHOPIFY_PASSWORD']}@#{ENV['SHOPIFY_SHOP_NAME']}.myshopify.com/admin" 
 
 class Rollover
   include Async

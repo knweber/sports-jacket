@@ -1,15 +1,17 @@
-FROM debian:stretch
+FROM debian:latest
 #FROM ruby
 MAINTAINER FAMBRANDS
 
 EXPOSE 5678
+VOLUME /data
 
 # Install wget, sox and flite
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y ruby ruby-dev zlib1g-dev build-essential && \
-    gem install resque-web
+    gem install --no-document resque-web redis
 
 WORKDIR /data
 
-CMD ["resque-web", "-FL", "-r", "$REDIS_URL"]
+#CMD ["resque-web", "-FL", "-r", "$REDIS_URL"]
+CMD resque-web -FL -r $REDIS_URL

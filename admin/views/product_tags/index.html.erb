@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Products</title>
+    <link rel="stylesheet" href="/css/master.css" type="text/css" media="screen" title="no title" charset="utf-8">
+  </head>
+  <body>
+    <div><a href="/product_tags/new">Create new product tag</a></div>
+    <table>
+      <thead>
+        <tr>
+          <td>Product ID</td>
+          <td>Produoct Name</td>
+          <td>Tag</td>
+          <td>Theme</td>
+          <td>Active Start</td>
+          <td>Active End</td>
+          <td>Active?</td>
+          <td></td>
+        </tr>
+      </thead>
+      <tbody>
+        <% product_tags.each do |tag| %>
+          <tr id="product-tag-<%= tag.product_id %>">
+            <td><%= tag.product_id %></td>
+            <td><%= products[tag.product_id] %></td>
+            <td><%= tag.tag %></td>
+            <td><%= themes[tag.theme_id] %></td>
+            <td><%= tag.active_start %></td>
+            <td><%= tag.active_end %></td>
+            <td><%= tag.active? %></td>
+            <td>
+              <form action="/product_tags/<%= tag.id %>/edit">
+                <submit>Edit</submit>
+              </form>
+              <form action="/product_tags/<%= tag.id %>">
+                <input type="hidden" name="_method" id="_method" value="delete" />
+                <submit>Delete</submit>
+              </form>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </body>
+</html>
