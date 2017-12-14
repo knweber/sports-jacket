@@ -240,37 +240,6 @@ class EllieListener < Sinatra::Base
     end
   end
 
-  # demo endpoints for customers
-
-  get '/customers' do
-    customers = params.empty? ? Customer.all : Customer.where(params)
-    output = customers.map(&:as_recharge).to_json
-    [200, @default_headers, output]
-  end
-
-  get '/customers/:customer_id' do |customer_id|
-    customer = Customer.find(customer_id)
-    customer.recharge_update!
-    output = customer.as_recharge.to_json
-    [200, @default_headers, output]
-  end
-
-  put '/customer/:customer_id' do |customer_id|
-    json = JSON.parse request.body
-    json['customer_id'] = customer_id
-    res = Customer.async.update_recharge(json)
-    customer = Customer.from_recharge json
-    if res && customer.errors.empty?
-      [200, @default_headers, customer.as_recharge.to_json]
-    else
-      error = {
-        error: 'invalid customer data',
-        details: customer.errors
-      }
-      [400, @default_headers, error.to_json]
-    end
-  end
-
   put '/subscription_switch' do
     puts 'Received stuff'
     puts params.inspect
