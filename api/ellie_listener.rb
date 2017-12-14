@@ -124,11 +124,12 @@ class EllieListener < Sinatra::Base
     end
     customer_id = Customer.find_by(shopify_customer_id: shopify_id).try(:customer_id)
     return [404, @default_headers, {error: 'not found'}.to_json] if customer_id.nil?
-    data = Subscription.where(
+    data = Subscription
+      .current_products
+      .where(
         status: 'ACTIVE',
-        shopify_product_id: Subscription::CURRENT_PRODUCTS.pluck(:id),
         customer_id: customer_id,
-    )
+      )
     output = data.map{|sub| transform_subscriptions(sub, sub.orders)}
     [200, @default_headers, output.to_json]
   end

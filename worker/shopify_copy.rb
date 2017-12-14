@@ -1,11 +1,8 @@
-require 'shopify_api'
-require 'recharge'
+require_relative '../lib/init'
 require_relative '../lib/async'
 require 'resque'
 
-#FIXME: monkey patch!!!
-ShopifyAPI::Base.include Async
-
+# WIP
 class ShopifyCopy
   include Async
 
