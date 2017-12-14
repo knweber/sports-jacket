@@ -8,6 +8,7 @@ require 'shopify_api'
 require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
+require_relative '../lib/init'
 require_relative '../models/all'
 require_relative '../lib/recharge_active_record'
 require_relative '../lib/logging'
@@ -295,10 +296,9 @@ class EllieListener < Sinatra::Base
     puts params.inspect
     params['recharge_change_header'] = @recharge_change_header
     my_action = params['action']
-    my_now = Date.today.day
+    my_now = Date.current.day
     puts "Day of the month is #{my_now}"
-    tz = ActiveSupport::TimeZone['Pacific Time (US & Canada)']
-    if tz.now.day < 5
+    if Time.zone.now.day < 5
       if my_action == "skip_month"
         Resque.enqueue_to(:skip_product, 'SubscriptionSkip', params)
       else
