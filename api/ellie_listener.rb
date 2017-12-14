@@ -306,7 +306,7 @@ class EllieListener < Sinatra::Base
     [404, @default_headers, {error: 'Record not found', details: details}.to_json]
   end
 
-  error JSON::ParseError do
+  error JSON::ParserError do
     [400, @default_headers, { error: env['sinatra_error'].message }.to_json]
   end
 
