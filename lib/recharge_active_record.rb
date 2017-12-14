@@ -29,11 +29,13 @@ module RechargeActiveRecordInclude
   end
 
   def recharge_update
-    self.class.recharge_endpoint.update id, recharge_changes
+    data = self.class.map_out active_changes
+    self.class.recharge_endpoint.update id, data
   end
 
   def recharge_update_async
-    self.class.recharge_endpoint.async :update, id, recharge_changes
+    data = self.class.map_out active_changes
+    self.class.recharge_endpoint.async :update, id, data
   end
 
   def recharge_delete
@@ -42,11 +44,6 @@ module RechargeActiveRecordInclude
 
   def recharge_delete_async
     self.class.recharge_endpoint.async :delete, id
-  end
-
-  def recharge_changes
-    changes = attributes.select{|k, _| changed.include? k}
-    self.class.map_out changes
   end
 
   module ClassMethods

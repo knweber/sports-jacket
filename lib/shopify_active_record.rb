@@ -6,9 +6,10 @@ require_relative 'logging'
 module ShopifyActiveRecordInclude
   def self.included(base)
     base.extend(ClassMethods)
-    base.before_create :shopify_create
-    base.before_update :shopify_update
-    base.before_destroy :shopify_delete
+
+    base.before_create :shopify_create_async
+    base.before_update :shopify_update_async
+    base.before_destroy :shopify_delete_async
   end
 
   def as_shopify
@@ -21,27 +22,29 @@ module ShopifyActiveRecordInclude
   end
 
   def shopify_create
-    self.class.shopify_create(as_shopify)
+    self.class.shopify_class.create(as_shopify)
   end
 
   def shopify_create_async
-    self.class.async :shopify_create, as_shopify
+    self.class.shopify_class.async :create, as_shopify
   end
 
   def shopify_update
-    self.class.shopify_update(id, as_shopify)
+    data = self.class.map_out active_changes
+    self.class.shopify_class.update(id, data)
   end
 
   def shopify_update_async
-    self.class.async :shopify_update, id, as_shopify
+    data = self.class.map_out active_changes
+    self.class.shopify_class.async :update, id, data
   end
 
   def shopify_delete
-    self.class.shopify_delete(id)
+    self.class.shopify_class.delete(id)
   end
 
   def shopify_delete_async
-    self.class.async :shopify_delete, id
+    self.class.shopify_class.async :delete, id
   end
 
   module ClassMethods
@@ -60,19 +63,17 @@ module ShopifyActiveRecordInclude
       remapped.to_h
     end
 
-    def shopify_create(data)
-      shopify = ShopifyAPI.const_get name
-      shopify.create(data)
+    def map_out(local_obj)
+      remapped = local_obj.map do |key, val|
+        map = api_map.find{|m| m[:local_key] == key}
+        next [key, val] if map.nil?
+        [map[:remote_key], map[:outbound].call(val)]
+      end
+      remapped.to_h
     end
 
-    def shopify_update(id, data)
-      shopify = ShopifyAPI.const_get name
-      shopify.update(id, data)
-    end
-
-    def shopify_delete(id)
-      shopify = ShopifyAPI.const_get name
-      shopify.delete(id)
+    def shopify_class
+      ShopifyAPI.const_get name
     end
 
     private

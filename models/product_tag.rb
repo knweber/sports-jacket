@@ -8,7 +8,7 @@ class ProductTag < ActiveRecord::Base
   # * :theme_id - the theme the product tag is associated with
   def self.active(options = {})
     theme_id = options[:theme_id] || Config[:current_theme_id]
-    time = options[:time] || Time.now
+    time = options[:time] || Time.zone.now
     sql = "
       (theme_id = null OR theme_id = ?)
       AND (active_start = null OR active_start < ?)
@@ -21,12 +21,12 @@ class ProductTag < ActiveRecord::Base
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def active?(options = {})
-    theme_id = options[:theme_id] || Config[:current_theme_id]
-    time = options[:time] || Time.now
+    options[:theme_id] ||= Config[:current_theme_id]
+    options[:time] ||= Time.now
     [
-      theme_id.nil? || theme_id == Config[:current_theme_id],
-      active_start.nil? || active_start < Time.now,
-      active_end.nil? || active_end > Time.now,
+      theme_id.nil? || theme_id == options[:theme_id],
+      active_start.nil? || active_start < options[:time],
+      active_end.nil? || active_end > options[:time],
     ].all?
   end
 end
