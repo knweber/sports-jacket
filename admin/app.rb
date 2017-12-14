@@ -134,10 +134,9 @@ class EllieAdmin < Sinatra::Base
 
   get '/product_tags/:id/edit' do |id|
     product_tag = ProductTag.find(id)
-    theme = ShopifyAPI::Theme.find(product_tag.theme_id)
     vars = {
       product_tag: product_tag,
-      themes: theme.name,
+      themes: ShopifyAPI::Theme.all.sort_by(&:updated_at),
       products: Product.all.pluck(:shopify_id, :title).to_h,
     }
     [200, {}, template('product_tags/edit', vars)]

@@ -1,7 +1,7 @@
 
 <div>
   <label for="product_id">Product ID:</label>
-  <select name="product_id" id="product_id" multiple size="1">
+  <select name="product_id" id="product_id">
     <% products.each do |products| %>
       <option value="<%= product.id %>" <%= product.id == product_tag.product_id ? ' selected ' : '' %> ><%= product.title %></option>
     <% end %>
@@ -14,7 +14,7 @@
 </div>
 
 <div>
-  <select name="theme_id" id="theme_id" multiple size="1">
+  <select name="theme_id" id="theme_id">
     <% themes.each do |theme| %>
       <option value="<%= theme.id %>"<%= theme.id == product_tag.theme_id ? ' selected ' : '' %>><%= theme.name %></option>
     <% end %>

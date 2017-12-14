@@ -10,9 +10,9 @@
       <input type="hidden" name="_method" id="_method" value="put" />
       <div>
         <label for="product_id">Product ID:</label>
-        <select name="product_id" id="product_id" multiple size="1">
-          <% products.each do |products| %>
-            <option value="<%= product.id %>" <%= product.id == product_tag.product_id ? ' selected ' : '' %> ><%= product.title %></option>
+        <select name="product_id" id="product_id">
+          <% products.each do |id, title| %>
+            <option value="<%= id %>"<%= id == product_tag.product_id ? ' selected ' : '' %>><%= title %></option>
           <% end %>
         </select>
       </div>
@@ -23,7 +23,8 @@
       </div>
 
       <div>
-        <select name="theme_id" id="theme_id" multiple size="1">
+        <label for="theme_id">Theme:</label>
+        <select name="theme_id" id="theme_id">
           <% themes.each do |theme| %>
             <option value="<%= theme.id %>"<%= theme.id == product_tag.theme_id ? ' selected ' : '' %>><%= theme.name %></option>
           <% end %>
@@ -42,5 +43,6 @@
 
       <input type="submit" name="_submit" id="_submit" value="Update" />
     </form>
+    <p><a href="/product_tags">Back</a></p>
   </body>
 </html>
