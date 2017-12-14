@@ -1,13 +1,14 @@
 require 'active_record'
 require 'active_record/base'
-require_relative '../lib/recharge_api'
+require_relative '../lib/recharge_active_record'
 require_relative '../lib/async'
 require_relative 'application'
+require 'recharge'
 
 class Subscription < ActiveRecord::Base
   include ApplicationRecord
-  include Async
   include RechargeActiveRecordInclude
+  include Async
 
   self.primary_key = :subscription_id
 
@@ -30,14 +31,21 @@ class Subscription < ActiveRecord::Base
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.prepaid_products(options = {})
-    ProductTag.active.where(tag: 'prepaid').pluck(:id)
+    ProductTag.active(options).where(tag: 'prepaid').pluck(:id)
   end
 
   # the options this method takes are:
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.skippable_products(options = {})
-    ProductTag.active.where(tag: 'skippable').pluck(:id)
+    ProductTag.active(options).where(tag: 'skippable').pluck(:id)
+  end
+
+  # the options this method takes are:
+  # * :time - a valid datetime string / object
+  # * :theme_id - the theme the product tag is associated with
+  def self.switchable_products(options = {})
+    ProductTag.active(options).where(tag: 'switchable').pluck(:id)
   end
 
   # Defines the relationship between the local database table and the remote
@@ -190,27 +198,29 @@ class Subscription < ActiveRecord::Base
       status == 'ACTIVE'
   end
 
-  def skippable?
-    tz = ActiveSupport::TimeZone['Pacific Time (US & Canada)']
+  # evaluated options are:
+  #   tz: the timezone to use
+  #   time: the time of the skip action
+  #   theme_id: the theme_id for checking appropriate ProductTags
+  def skippable?(options = {})
+    tz = ActiveSupport::TimeZone[options[:tz]] || Time.zone
+    now = tz.parse options[:time] rescue tz.now
     skip_conditions = [
       !prepaid?,
       active?,
       tz.now.day < 5,
-      Subscription.skippable_products.include?(shopify_product_id),
-      next_charge_scheduled_at.try('>', tz.now.beginning_of_month),
-      next_charge_scheduled_at.try('<', tz.now.end_of_month),
-      next_charge_scheduled_at.try('>', tz.now),
+      Subscription.skippable_products(options).include?(shopify_product_id),
+      next_charge_scheduled_at.try('>', now.beginning_of_month),
+      next_charge_scheduled_at.try('<', now.end_of_month),
+      next_charge_scheduled_at.try('>', now),
     ]
     skip_conditions.all?
   end
 
-  # returns a 2 element array. The first element indecateds if the subscription
-  # can be successfully skipped. The second element is the unsaved active record
-  # object with the new `next_charge_scheduled_at`
   def skip
     return false unless skippable?
     self.next_charge_scheduled_at += 1.month
-    true
+    save
   end
 
   #def charges
@@ -247,7 +257,43 @@ class Subscription < ActiveRecord::Base
     prop_hash = raw_line_item_properties.map{|prop| [prop['name'], prop['value']]}.to_h
     merged_hash = prop_hash.merge new_sizes
     puts "merged_hash = #{merged_hash}"
-    self[:raw_line_item_properties] = merged_hash.map{|k,v| {'name' => k, 'value' => v}}
+    self[:raw_line_item_properties] = merged_hash.map{|k, v| {'name' => k, 'value' => v}}
+  end
+
+  # valid options are:
+  #   tz: the timezone of the user
+  #   time: the time the switch was made (used for checking company policy)
+  #   theme_id: the theme_id used for finding switchable and alternate products
+  def switchable?(options = {})
+    tz = ActiveSuppotrTimeZone[options[:tz]] || ActiveSupport::TimeZone['Pacific Time (US & Canada)']
+    now = tz.parse options[:time] rescue tz.now
+    switch_conditions = [
+      !prepaid?,
+      active?,
+      Subscription.switchable_products(options).include?(shopify_product_id),
+      next_charge_scheduled_at.try('>', now.beginning_of_month),
+      next_charge_scheduled_at.try('<', now.end_of_month),
+      next_charge_scheduled_at.try('>', now),
+    ]
+    switch_conditions.all?
+  end
+
+  # valid options are:
+  #   tz: the timezone of the user
+  #   time: the time the switch was made (used for checking company policy)
+  #   theme_id: the theme_id used for finding switchable and alternate products
+  def switch_product(new_product_id = nil, options = {})
+    return false unless switchable?(options)
+    self.shopify_product_id = new_product_id || alt_product_id
+    save
+  end
+
+  def self.get_alt_product_id(current_product_id)
+    Config['alt_products'][current_product_id]
+  end
+
+  def alt_product_id
+    Subscription.get_alt_product_id product_id
   end
 
   private

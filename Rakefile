@@ -1,13 +1,13 @@
 require 'dotenv'
 Dotenv.load
-require 'redis'
+require_relative 'lib/init'
 require 'resque'
-Resque.redis = Redis.new(url: ENV['REDIS_URL'])
 require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
 
 require_relative 'models/all'
+
 Dir['worker/**/*.rb'].each do |file|
   require_relative file
 end

@@ -9,9 +9,8 @@ require 'sinatra/activerecord'
 require 'ostruct'
 
 require_relative '../models/all'
-require_relative '../lib/recharge_api'
 require_relative '../lib/logging'
-require_relative '../lib/shopify_init.rb'
+require_relative '../lib/init'
 
 require_relative 'controllers/product_tag_controller'
 

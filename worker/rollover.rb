@@ -1,6 +1,5 @@
-require 'resque'
 require_relative '../lib/async'
-require_relative '../lib/shopify_init.rb'
+require_relative '../lib/init'
 require_relative '../models/config'
 
 

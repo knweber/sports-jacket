@@ -1,6 +1,6 @@
+require_relative '../lib/init'
 require_relative '../models/all'
 require_relative '../lib/async'
-require_relative '../lib/shopify_init'
 require 'resque'
 
 class ShopifyPull

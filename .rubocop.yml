@@ -18,3 +18,9 @@ Layout/SpaceInsideBlockBraces:
 
 Layout/LeadingCommentSpace:
   Enabled: False
+
+Layout/SpaceBeforeBlockBraces:
+  Enabled: False
+
+Style/TrailingCommaInArguments:
+  Enabled: False

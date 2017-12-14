@@ -9,7 +9,7 @@ require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
 require_relative '../models/all'
-require_relative '../lib/recharge_api'
+require_relative '../lib/recharge_active_record'
 require_relative '../lib/logging'
 
 class EllieListener < Sinatra::Base
@@ -320,11 +320,11 @@ class EllieListener < Sinatra::Base
     next_charge_sql = 'next_charge_scheduled_at > ? AND next_charge_scheduled_at < ?'
     data = customer
       .subscriptions
-      .skippable_products
+      .skippable_products(time: params[:time], theme_id: params[:theme_id])
       .where(status: 'ACTIVE')
       .where(next_charge_sql, Date.today.beginning_of_month, Date.today.end_of_month)
       .map do |sub|
-        skippable = sub.skippable?
+        skippable = sub.skippable?(time: params[:time], theme_id: params[:theme_id])
         {
           subscription_id: sub.subscription_id,
           shopify_product_title: sub.product_title,
