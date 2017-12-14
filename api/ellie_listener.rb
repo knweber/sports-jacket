@@ -123,8 +123,7 @@ class EllieListener < Sinatra::Base
     if shopify_id.nil?
       return [400, @default_headers, JSON.generate(error: 'shopify_id required')]
     end
-    customer_id = Customer.find_by(shopify_customer_id: shopify_id).try(:customer_id)
-    return [404, @default_headers, {error: 'not found'}.to_json] if customer_id.nil?
+    customer_id = Customer.find_by!(shopify_customer_id: shopify_id).customer_id
     data = Subscription
       .current_products
       .where(
@@ -200,14 +199,10 @@ class EllieListener < Sinatra::Base
     rescue
       return [400, @default_headers, {error: 'invalid payload data'}.to_json]
     end
-    begin
-      res = Subscription.async(:recharge_update, subscription.as_recharge)
-      raise 'Error processing subscription change. Please try again later.' unless res
-      subscription.save
-    rescue StandardError => e
-      logger.error e.inspect
-      return [500, @default_headers, {error: e}.to_json]
-    end
+    res = Subscription.async(:recharge_update, subscription.as_recharge)
+    raise 'Error processing subscription change. Please try again later.' unless res
+    subscription.save
+    logger.error e.inspect
     output = {subscription: subscription}
     [200, @default_headers, output.to_json]
   end
@@ -285,8 +280,7 @@ class EllieListener < Sinatra::Base
       return [400, @default_headers, JSON.generate(error: 'shopify_id required')]
     end
     customer = Customer.joins(:subscriptions)
-      .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
-    return [404, @default_headers, {error: 'customer not found'}] if customer.nil?
+      .find_by!(shopify_customer_id: shopify_id, status: 'ACTIVE')
     next_charge_sql = 'next_charge_scheduled_at > ? AND next_charge_scheduled_at < ?'
     data = customer
       .subscriptions
@@ -305,6 +299,19 @@ class EllieListener < Sinatra::Base
         }
       end
     [200, @default_headers, data.to_json]
+  end
+
+  error ActiveRecord::RecordNotFound do
+    details = env['sinatra.error'].message
+    [404, @default_headers, {error: 'Record not found', details: details}.to_json]
+  end
+
+  error JSON::ParseError do
+    [400, @default_headers, { error: env['sinatra_error'].message }.to_json]
+  end
+
+  error do
+    [500, @default_headers, {error: env['sinatra.error'].message}.to_json]
   end
 
   private
