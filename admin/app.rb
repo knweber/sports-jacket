@@ -58,6 +58,7 @@ class EllieAdmin < Sinatra::Base
     configs = Config.all
     puts "Configs #{configs.inspect}"
     configs_out = configs.map{|c| [c.key, c.val]}.to_h
+    puts "Configs out: #{configs_out.inspect}"
     template('config/index', configs: configs_out)
   end
 
@@ -95,7 +96,13 @@ class EllieAdmin < Sinatra::Base
   end
 
   delete '/config/:key' do |key|
-    Config[key].delete
+    Config[key].delete!
+    redirect '/config', 302
+  end
+
+  delete '/config/:key.json' do |key|
+    Config[key].delete!
+    [200, @json_headers, { success: "Record deleted." }.to_json]
   end
 
   get '/product_tags/new' do
@@ -147,13 +154,18 @@ class EllieAdmin < Sinatra::Base
   end
 
   delete '/product_tags/:id' do |id|
-    ProductTag.find(id).delete
-    200
+    ProductTag.delete id
+    redirect '/product_tags', 302
+  end
+
+  delete '/product_tags/:id.json' do |id|
+    ProductTag.delete id
+    [200, @json_headers, { success: 'Record deleted.' }]
   end
 
   put '/product_tags/:id' do |id|
-    ProductTag.find(id).update!(filter_params(ProductTag, params))
-    200
+    ProductTag.update(id, filter_params(ProductTag, params))
+    redirect '/product_tags', 302
   end
 
   put '/product_tags/:id.json' do |id|
@@ -163,13 +175,13 @@ class EllieAdmin < Sinatra::Base
   end
 
   post '/product_tags' do
-    product_tag = ProductTag.create!(filter_params(ProductTag, params))
-    [201, @json_headers, product_tag.to_json]
+    ProductTag.create!(filter_params(ProductTag, params))
+    redirect '/product_tags', 302
   end
 
-  delete '/product_tags/:id' do |id|
-    ProductTag.find(id).delete
-    200
+  post '/product_tags.json' do
+    product_tag = ProductTag.create!(filter_params(ProductTag, params))
+    [201, @json_headers, product_tag.to_json]
   end
 
   error ActiveRecord::RecordNotFound do

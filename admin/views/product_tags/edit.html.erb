@@ -19,7 +19,7 @@
 
       <div>
         <label for="tag">Tag:</label>
-        <input type="text" name="tag" id="tag" value="" placeholder="current" />
+        <input type="text" name="tag" id="tag" value="<%= product_tag.tag %>" placeholder="current" />
       </div>
 
       <div>
@@ -33,12 +33,12 @@
 
       <div>
         <label for="active_start">Active Start:</label>
-        <input type="datetime-local" name="active_start" id="active_start" value="" />
+        <input type="datetime-local" name="active_start" id="active_start" value="<%= product_tag.active_start %>" />
       </div>
 
       <div>
         <label for="active_end">Active End:</label>
-        <input type="datetime-local" name="active_end" id="active_end" value="" />
+        <input type="datetime-local" name="active_end" id="active_end" value="<%= product_tag.active_end %>" />
       </div>
 
       <input type="submit" name="_submit" id="_submit" value="Update" />

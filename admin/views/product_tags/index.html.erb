@@ -14,7 +14,8 @@
           <td>Product ID</td>
           <td>Produoct Name</td>
           <td>Tag</td>
-          <td>Theme</td>
+          <td>Theme ID</td>
+          <td>Theme Name</td>
           <td>Active Start</td>
           <td>Active End</td>
           <td>Active?</td>
@@ -27,7 +28,8 @@
             <td><%= tag.product_id %></td>
             <td><%= products[tag.product_id] %></td>
             <td><%= tag.tag %></td>
-            <td><%= themes[tag.theme_id] %></td>
+            <td><%= tag.theme_id %></td>
+            <td><%= themes[tag.theme_id] || 'Unknown' %></td>
             <td><%= tag.active_start %></td>
             <td><%= tag.active_end %></td>
             <td><%= tag.active? %></td>
