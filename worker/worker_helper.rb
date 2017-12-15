@@ -317,6 +317,11 @@ module EllieHelper
           my_charges = charges.parsed_response['charges']
           #logger.debug "#{'#' * 5} CHARGES #{'#' * 40}\n#{my_charges.pretty_inspect}"
           my_charges.each do |charge|
+            #check for error in status it will have nils
+            ck_status = charge['status']
+            next if ck_status == "ERROR"
+
+
             address_id = charge['address_id']
             raw_billing_address = charge['billing_address']
             billing_address = charge['billing_address'].to_json
@@ -821,6 +826,10 @@ module EllieHelper
           my_charges = charges.parsed_response['charges']
           my_charges.each do |charge|
             logger.debug charge.inspect
+            ck_status = charge['status']
+            next if ck_status == "ERROR"
+
+
             address_id = charge['address_id']
             raw_billing_address = charge['billing_address']
             billing_address = charge['billing_address'].to_json
