@@ -790,11 +790,13 @@ module EllieHelper
       end
     
       def background_load_full_charges(sleep_recharge, num_charges, header_info, uri)
-        logger.info "starting FULL download"
+        Resque.logger = Logger.new("#{Dir.getwd}/logs/charge_pull.log")
+        Resque.logger.info "starting FULL download"
+        #logger.info "starting FULL download"
     
     
-        logger.debug header_info
-        logger.debug uri
+        Resque.logger.debug header_info
+        Resque.logger.debug uri
         myuri = URI.parse(uri)
         my_conn =  PG.connect(myuri.hostname, myuri.port, nil, nil, myuri.path[1..-1], myuri.user, myuri.password)
         my_insert = "insert into charges (address_id, billing_address, client_details, created_at, customer_hash, customer_id, first_name, charge_id, last_name, line_items, note, note_attributes, processed_at, scheduled_at, shipments_count, shipping_address, shopify_order_id, status, sub_total, sub_total_price, tags, tax_lines, total_discounts, total_line_items_price, total_tax, total_weight, total_price, updated_at, discount_codes) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)"
@@ -823,9 +825,13 @@ module EllieHelper
         num_pages = (num_charges/page_size.to_f).ceil
         1.upto(num_pages) do |page|
           charges = HTTParty.get("https://api.rechargeapps.com/charges?limit=250&page=#{page}", :headers => header_info)
+          Resque.logger.debug charges.inspect
+          Resque.logger.debug "----------------------------"
+          Resque.logger.debug charges.parsed_response['charges']
+          Resque.logger.debug "----------------------------"
           my_charges = charges.parsed_response['charges']
           my_charges.each do |charge|
-            logger.debug charge.inspect
+            Resque.logger.debug charge.inspect
             ck_status = charge['status']
             next if ck_status == "ERROR"
 
@@ -870,13 +876,13 @@ module EllieHelper
             line_items = charge['line_items'].to_json
             raw_line_items = charge['line_items'][0]
             raw_line_items['properties'].each do |myitem|
-              logger.debug myitem
+              Resque.logger.debug myitem
               myname = myitem['name']
               myvalue = myitem['value']
               if myvalue == "" 
                 myvalue = nil
               end
-              logger.info "#{charge_id}: #{myname} -> #{myvalue}"
+              Resque.logger.info "#{charge_id}: #{myname} -> #{myvalue}"
               if !myvalue.nil?
                 my_conn.exec_prepared('statement5', [charge_id, myname, myvalue])
               end
@@ -958,13 +964,13 @@ module EllieHelper
           end
           current = Time.now
           duration = (current - start).ceil
-          logger.info "Running #{duration} seconds"
-          logger.info "Done with page #{page}"
-          logger.info "Sleeping #{sleep_recharge}"
+          Resque.logger.info "Running #{duration} seconds"
+          Resque.logger.info "Done with page #{page}"
+          Resque.logger.info "Sleeping #{sleep_recharge}"
           sleep sleep_recharge.to_i
         end
-        logger.info "All done with charges"
-        logger.info "Ran #{(Time.now - start).ceil} seconds"
+        Resque.logger.info "All done with charges"
+        Resque.logger.info "Ran #{(Time.now - start).ceil} seconds"
       end
     
     
