@@ -58,9 +58,8 @@ class ShopifyCopy
     'ShopifyQL',
   ].freeze
 
-  # FIXME: Find a way around using eval
   def self.constantize(string)
-    eval("ShopifyAPI::#{entity}")
+    ShopifyAPI.const_get(string)
   end
 
   # construct a shopify admin url with credentials
@@ -91,7 +90,7 @@ class ShopifyCopy
 
   def self.delete_all(target_url, entity, where = {})
     ShopifyAPI::Base.site = target_url
-    klass = eval("ShopifyAPI::#{entity}")
+    klass = constantize entity
     where[:limit] ||= 250
     count = klass.where(where).count
     pages = count.fdiv(count).ceil
@@ -99,9 +98,6 @@ class ShopifyCopy
       ids = klass.where({page: page}.merge(where)).map(&:id)
       ids.each{|id| klass.async :delete, id}
     end
-  end
-
-  def self.delete
   end
 
 end
