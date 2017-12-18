@@ -1,6 +1,6 @@
 root = "#{Dir.getwd}"
 
-environment 'production'
+#environment 'production'
 
 #activate_control_app "tcp://127.0.0.1:9293"
 bind "tcp://0.0.0.0:9292"
