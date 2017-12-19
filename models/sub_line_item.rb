@@ -1,5 +1,4 @@
 require_relative 'application'
-require 'active_record'
 require 'active_record/base'
 
 class SubLineItem < ActiveRecord::Base

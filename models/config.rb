@@ -1,4 +1,4 @@
-require 'active_record'
+require 'active_record/base'
 
 class Config < ActiveRecord::Base
   self.table_name = :config

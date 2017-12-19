@@ -1,4 +1,4 @@
-require 'active_record'
+require_relative '../lib/init'
 require 'active_record/base'
 require_relative '../lib/async'
 require_relative 'application'
