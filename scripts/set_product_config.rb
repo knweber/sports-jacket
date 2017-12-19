@@ -11,7 +11,5 @@ Config['alt_monthly_variant_id'] = 46479057042
 
 Config['alt_ellie_3pack_title'] = 'Alternative Ellie 3- Pack'
 Config['alt_ellie_3pack_sku'] = 722457911110
-Config['alt_monthly_product_id'] = 10870682450
-Config['alt_monthly_variant_id'] = 46480736274
-#Config['alt_ellie_3pack_variant_id'] 
-#Config['alt_ellie_3pack_product_id']
+Config['alt_ellie_3pack_product_id'] = 10870682450
+Config['alt_ellie_3pack_variant_id'] = 46480736274
