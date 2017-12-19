@@ -24,8 +24,8 @@ module ResqueHelper
 
         alt_ellie3pack_title = Config['alt_ellie_3pack_title']
         alt_ellie3pack_sku = Config['alt_ellie_3pack_sku']
-        alt_montly_product_id = Config['alt_monthly_product_id']
-        alt_monthly_variant_id = Config['alt_monthly_variant_id']
+        #alt_montly_product_id = Config['alt_monthly_product_id']
+        #alt_monthly_variant_id = Config['alt_monthly_variant_id']
         alt_ellie3pack_variant_id = Config['alt_ellie_3pack_variant_id'] 
         alt_ellie_3pack_product_id = Config['alt_ellie_3pack_product_id']
 

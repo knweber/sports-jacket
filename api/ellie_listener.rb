@@ -1,5 +1,6 @@
 require 'dotenv'
 Dotenv.load
+require_relative '../lib/init'
 require 'sinatra/base'
 require 'json'
 require 'httparty'
@@ -8,7 +9,6 @@ require 'shopify_api'
 require 'active_support/core_ext'
 require 'sinatra/activerecord'
 
-require_relative '../lib/init'
 require_relative '../models/all'
 require_relative '../lib/recharge_active_record'
 require_relative '../lib/logging'
@@ -16,6 +16,7 @@ require_relative '../lib/logging'
 class EllieListener < Sinatra::Base
   register Sinatra::ActiveRecordExtension
   include Logging
+  #config.time_zone = 'Pacific Time (US & Canada)'
 
   PAGE_LIMIT = 250
 
@@ -29,6 +30,7 @@ class EllieListener < Sinatra::Base
 
     # on webserver startup set the current theme id
     Resque.enqueue_to(:default, 'Rollover', :set_current_theme_id)
+    puts "running configure timezone: #{Time.zone.inspect}"
   end
 
   def initialize
@@ -43,6 +45,9 @@ class EllieListener < Sinatra::Base
       'Accept' => 'application/json',
       'Content-Type' => 'application/json'
     }
+    # required for active support's Time.zone
+    # Gets unset from initializer when puma forks new threads
+    Thread.current[:time_zone] ||= ActiveSupport::TimeZone['Pacific Time (US & Canada)']
 
     super
   end
@@ -118,14 +123,16 @@ class EllieListener < Sinatra::Base
   end
 
   get '/subscriptions' do
+    puts "handler timezone: #{Time.zone.inspect}"
     shopify_id = params['shopify_id']
     logger.debug params.inspect
     if shopify_id.nil?
       return [400, @default_headers, JSON.generate(error: 'shopify_id required')]
     end
     customer_id = Customer.find_by!(shopify_customer_id: shopify_id).customer_id
+    time = Time.zone.parse params[:time] rescue Time.zone.now
     data = Subscription
-      .current_products
+      .current_products(time: time, theme_id: params[:theme_id])
       .where(
         status: 'ACTIVE',
         customer_id: customer_id,
@@ -144,11 +151,9 @@ class EllieListener < Sinatra::Base
   post '/subscriptions' do
     json = JSON.parse request.body.read
     shopify_id = json['shopify_id']
-    if shopify_id.nil?
-      return [400, JSON.generate({error: 'shopify_id required'})]
-    end
+    return [400, {error: 'shopify_id required'}.to_json] if shopify_id.nil?
     data = Customer.joins(:subscriptions)
-      .find_by(shopify_customer_id: shopify_id, status: 'ACTIVE')
+      .find_by!(shopify_customer_id: shopify_id, status: 'ACTIVE')
       .subscriptions
       .map{|sub| [sub, sub.orders]}
     output = data.map{|i| transform_subscriptions(*i)}
@@ -188,9 +193,9 @@ class EllieListener < Sinatra::Base
   end
 
   put '/subscription/:subscription_id' do |subscription_id|
-    subscription = Subscription.find_by(subscription_id: subscription_id)
+    subscription = Subscription.find_by!(subscription_id: subscription_id)
     if subscription.nil?
-      return [400, @default_headers, {error: 'subscription not found'}.to_json]
+      return [404, @default_headers, {error: 'subscription not found'}.to_json]
     end
     begin
       json = JSON.parse request.body.read
@@ -209,7 +214,7 @@ class EllieListener < Sinatra::Base
 
   post '/subscription/:subscription_id/skip' do |subscription_id|
     sub = Subscription.find subscription_id
-    return [400, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
+    return [404, @default_headers, {error: 'subscription not found'}.to_json] if sub.nil?
     begin
       request_body = JSON.parse request.body.read
       puts "request_body = #{request_body}"
@@ -281,21 +286,23 @@ class EllieListener < Sinatra::Base
     end
     customer = Customer.joins(:subscriptions)
       .find_by!(shopify_customer_id: shopify_id, status: 'ACTIVE')
+    time = Time.zone.parse params[:time] rescue Time.zone.now
     next_charge_sql = 'next_charge_scheduled_at > ? AND next_charge_scheduled_at < ?'
     data = customer
       .subscriptions
-      .skippable_products(time: params[:time], theme_id: params[:theme_id])
+      .skippable_products(time: time, theme_id: params[:theme_id])
       .where(status: 'ACTIVE')
       .where(next_charge_sql, Date.today.beginning_of_month, Date.today.end_of_month)
       .map do |sub|
-        skippable = sub.skippable?(time: params[:time], theme_id: params[:theme_id])
+        skippable = sub.skippable?(time: time, theme_id: params[:theme_id])
+        switchable = sub.switchable?(time: time, theme_id: params[:theme_id])
         {
           subscription_id: sub.subscription_id,
           shopify_product_title: sub.product_title,
           shopify_product_id: sub.shopify_product_id,
           next_charge_scheduled_at: sub.next_charge_scheduled_at.strftime('%F'),
           skippable: skippable,
-          can_choose_alt_product: skippable,
+          can_choose_alt_product: switchable,
         }
       end
     [200, @default_headers, data.to_json]

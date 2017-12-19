@@ -9,7 +9,6 @@ class ProductTag < ActiveRecord::Base
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.active(options = {})
-    Time.zone = ActiveSupport::TimeZone['Pacific Time (US & Canada)']
     puts "Calling ProductTag::active time zone: #{Time.zone.inspect}, options: #{options.inspect}"
     theme_id = options[:theme_id] || Config[:current_theme_id].to_s
     time = options[:time] || Time.zone.now

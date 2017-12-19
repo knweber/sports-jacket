@@ -25,28 +25,28 @@ class Subscription < ActiveRecord::Base
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.current_products(options = {})
-    ProductTag.active(options).where(tag: 'current').pluck(:id)
+    ProductTag.active(options).where(tag: 'current')
   end
 
   # the options this method takes are:
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.prepaid_products(options = {})
-    ProductTag.active(options).where(tag: 'prepaid').pluck(:id)
+    ProductTag.active(options).where(tag: 'prepaid')
   end
 
   # the options this method takes are:
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.skippable_products(options = {})
-    ProductTag.active(options).where(tag: 'skippable').pluck(:id)
+    ProductTag.active(options).where(tag: 'skippable')
   end
 
   # the options this method takes are:
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.switchable_products(options = {})
-    ProductTag.active(options).where(tag: 'switchable').pluck(:id)
+    ProductTag.active(options).where(tag: 'switchable')
   end
 
   # Defines the relationship between the local database table and the remote
@@ -200,7 +200,6 @@ class Subscription < ActiveRecord::Base
   end
 
   # evaluated options are:
-  #   tz: the timezone to use
   #   time: the time of the skip action
   #   theme_id: the theme_id for checking appropriate ProductTags
   def skippable?(options = {})
@@ -210,7 +209,7 @@ class Subscription < ActiveRecord::Base
       !prepaid?,
       active?,
       tz.now.day < 5,
-      Subscription.skippable_products(options).include?(shopify_product_id),
+      ProductTag.active(options).where(tag: skippable).ids.include?(shopify_product_id),
       next_charge_scheduled_at.try('>', now.beginning_of_month),
       next_charge_scheduled_at.try('<', now.end_of_month),
       next_charge_scheduled_at.try('>', now),
@@ -262,16 +261,14 @@ class Subscription < ActiveRecord::Base
   end
 
   # valid options are:
-  #   tz: the timezone of the user
   #   time: the time the switch was made (used for checking company policy)
   #   theme_id: the theme_id used for finding switchable and alternate products
   def switchable?(options = {})
-    tz = ActiveSuppotrTimeZone[options[:tz]] || ActiveSupport::TimeZone['Pacific Time (US & Canada)']
-    now = tz.parse options[:time] rescue tz.now
+    now = options[:time] || Time.zone.now
     switch_conditions = [
       !prepaid?,
       active?,
-      Subscription.switchable_products(options).include?(shopify_product_id),
+      ProductTag.active(options).where(tag: 'switchable').ids.include?(shopify_product_id),
       next_charge_scheduled_at.try('>', now.beginning_of_month),
       next_charge_scheduled_at.try('<', now.end_of_month),
       next_charge_scheduled_at.try('>', now),
@@ -280,7 +277,6 @@ class Subscription < ActiveRecord::Base
   end
 
   # valid options are:
-  #   tz: the timezone of the user
   #   time: the time the switch was made (used for checking company policy)
   #   theme_id: the theme_id used for finding switchable and alternate products
   def switch_product(new_product_id = nil, options = {})
