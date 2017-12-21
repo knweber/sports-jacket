@@ -47,6 +47,7 @@ class EllieListener < Sinatra::Base
     }
     # required for active support's Time.zone
     # Gets unset from initializer when puma forks new threads
+    p 'running EllieListener#initialize'
     Thread.current[:time_zone] ||= ActiveSupport::TimeZone['Pacific Time (US & Canada)']
 
     super

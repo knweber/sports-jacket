@@ -25,28 +25,31 @@ class Subscription < ActiveRecord::Base
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.current_products(options = {})
-    ProductTag.active(options).where(tag: 'current')
+    where(shopify_product_id: ProductTag.active(options).where(tag: 'current').pluck(:product_id))
   end
 
   # the options this method takes are:
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.prepaid_products(options = {})
-    ProductTag.active(options).where(tag: 'prepaid')
+    where(shopify_product_id: ProductTag.active(options).where(tag: 'prepaid').pluck(:product_id))
   end
 
   # the options this method takes are:
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.skippable_products(options = {})
-    ProductTag.active(options).where(tag: 'skippable')
+    where(shopify_product_id: ProductTag.active(options).where(tag: 'skippable').pluck(:product_id))
   end
 
   # the options this method takes are:
   # * :time - a valid datetime string / object
   # * :theme_id - the theme the product tag is associated with
   def self.switchable_products(options = {})
-    ProductTag.active(options).where(tag: 'switchable')
+    switchable_products = ProductTag.active(options)
+      .where(tag: 'switchable')
+      .pluck(:product_id)
+    where(shopify_product_id: switchable_products)
   end
 
   # Defines the relationship between the local database table and the remote
@@ -190,7 +193,7 @@ class Subscription < ActiveRecord::Base
   end
 
   def prepaid?
-    PREPAID_PRODUCTS.pluck(:id).include? shopify_product_id
+    ProductTag.active.where(tag: 'prepaid').pluck(:product_id).include? shopify_product_id
   end
 
   def active?(time = nil)
@@ -203,13 +206,13 @@ class Subscription < ActiveRecord::Base
   #   time: the time of the skip action
   #   theme_id: the theme_id for checking appropriate ProductTags
   def skippable?(options = {})
-    tz = ActiveSupport::TimeZone[options[:tz]] || Time.zone
-    now = tz.parse options[:time] rescue tz.now
+    now = options[:time] || Time.zone.now
     skip_conditions = [
       !prepaid?,
       active?,
-      tz.now.day < 5,
-      ProductTag.active(options).where(tag: skippable).ids.include?(shopify_product_id),
+      now.day < 5,
+      ProductTag.active(options).where(tag: 'skippable')
+        .pluck(:product_id).include?(shopify_product_id),
       next_charge_scheduled_at.try('>', now.beginning_of_month),
       next_charge_scheduled_at.try('<', now.end_of_month),
       next_charge_scheduled_at.try('>', now),
@@ -268,7 +271,8 @@ class Subscription < ActiveRecord::Base
     switch_conditions = [
       !prepaid?,
       active?,
-      ProductTag.active(options).where(tag: 'switchable').ids.include?(shopify_product_id),
+      ProductTag.active(options).where(tag: 'switchable')
+        .pluck(:product_id).include?(shopify_product_id),
       next_charge_scheduled_at.try('>', now.beginning_of_month),
       next_charge_scheduled_at.try('<', now.end_of_month),
       next_charge_scheduled_at.try('>', now),
@@ -291,6 +295,10 @@ class Subscription < ActiveRecord::Base
 
   def alt_product_id
     Subscription.get_alt_product_id product_id
+  end
+
+  def current_product?
+    ProductTag.active.where(tag: 'current').pluck(:product_id).include? shopify_product_id
   end
 
   private

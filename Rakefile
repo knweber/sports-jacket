@@ -71,3 +71,8 @@ desc 'load update_products table with new data for updating the subscriptions ea
 task :load_update_products do |t|
   DetermineInfo::InfoGetter.new.load_update_products
 end
+
+desc 'sync products table'
+task :sync_products do |t|
+  ShopifyPull.async :all_products
+end
