@@ -1,3 +1,10 @@
+GIT
+  remote: git@github.com:r-bar/recharge-api.git
+  revision: 0574ffd9a8d7819e936cb2c2996aa3a0c5bb174a
+  specs:
+    recharge-api (0.0.1.pre.fambrands1)
+      class2 (~> 0.3.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -82,8 +89,6 @@ GEM
       rack (>= 1.0, < 3)
     rainbow (3.0.0)
     rake (12.3.0)
-    recharge-api (0.0.1)
-      class2 (~> 0.3.0)
     redis (3.3.5)
     redis-namespace (1.6.0)
       redis (>= 3.0.4)
@@ -144,7 +149,7 @@ DEPENDENCIES
   rack-cors (~> 1.0)
   rack-test
   rake
-  recharge-api
+  recharge-api!
   redis (= 3.3.5)
   resque
   rubocop

@@ -184,6 +184,23 @@ class EllieAdmin < Sinatra::Base
     [201, @json_headers, product_tag.to_json]
   end
 
+  get '/webhooks/rollover' do
+    date = Date.current.strftime '%Y-%m-%d'
+    # set the config
+    new_config = Config["rollover_config_#{date}"]
+    unless config.nil?
+      new_config.each do |key, val|
+        Config[key] = val
+      end
+    end
+    # update the subscription products
+    sub_products = Config["rollover_subscription_products_#{date}"]
+    unless sub_products.nil?
+      Resque.enqueue_to :rollover, 'Rollover', :subscription_products, sub_products
+    end
+    200
+  end
+
   error ActiveRecord::RecordNotFound do
     details = env['sinatra.error'].message
     [404, @json_headers, {error: 'Record not found', details: details}.to_json]
