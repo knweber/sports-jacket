@@ -1,6 +1,4 @@
 require_relative '../lib/init'
-require 'active_record/base'
-require 'active_support/all'
 require_relative 'config'
 
 class ProductTag < ActiveRecord::Base

@@ -1,6 +1,5 @@
 require_relative '../lib/init'
 require_relative '../lib/async'
-require 'resque'
 
 # WIP
 class ShopifyCopy

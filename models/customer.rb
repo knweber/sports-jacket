@@ -1,4 +1,3 @@
-require 'active_record/base'
 require_relative '../lib/recharge_active_record'
 require_relative '../lib/async'
 require_relative 'application'

@@ -1,4 +1,3 @@
-require 'active_record/base'
 require_relative 'application'
 
 class ChargeShippingLine < ActiveRecord::Base

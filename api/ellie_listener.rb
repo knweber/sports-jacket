@@ -1,14 +1,6 @@
-require 'dotenv'
 Dotenv.load
-require_relative '../lib/init'
-require 'sinatra/base'
-require 'json'
-require 'httparty'
-require 'resque'
-require 'shopify_api'
-require 'active_support/core_ext'
-require 'sinatra/activerecord'
 
+require_relative '../lib/init'
 require_relative '../models/all'
 require_relative '../lib/recharge_active_record'
 require_relative '../lib/logging'

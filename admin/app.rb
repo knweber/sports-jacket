@@ -1,18 +1,7 @@
-require 'dotenv'
+require_relative '../lib/init'
 Dotenv.load
-require 'sinatra/base'
-require 'json'
-require 'httparty'
-require 'resque'
-require 'active_support/core_ext'
-require 'sinatra/activerecord'
-require 'ostruct'
-
 require_relative '../models/all'
 require_relative '../lib/logging'
-require_relative '../lib/init'
-
-require_relative 'controllers/product_tag_controller'
 
 class EllieAdmin < Sinatra::Base
   register Sinatra::ActiveRecordExtension

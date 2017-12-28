@@ -1,5 +1,3 @@
-require 'active_record/base'
-
 class Config < ActiveRecord::Base
   self.table_name = :config
   self.primary_key = :key

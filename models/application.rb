@@ -1,6 +1,3 @@
-require 'active_record/base'
-require 'active_support'
-
 module ApplicationRecord
   extend ActiveSupport::Concern
 

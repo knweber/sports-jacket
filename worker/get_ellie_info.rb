@@ -1,12 +1,6 @@
 #FAMBrands download subscription
 #get_ellie_info.rb
 
-require 'httparty'
-require 'dotenv'
-require 'pg'
-require 'sinatra/activerecord'
-require 'active_support/core_ext'
-require 'resque'
 require_relative 'worker_helper'
 require_relative 'resque_helper'
 require_relative '../lib/logging'
@@ -20,7 +14,6 @@ module DetermineInfo
     include Logging
 
     def initialize
-      Dotenv.load
       recharge_regular = ENV['RECHARGE_ACCESS_TOKEN']
       @sleep_recharge = ENV['RECHARGE_SLEEP_TIME']
       @my_header = {

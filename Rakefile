@@ -1,8 +1,5 @@
-require 'dotenv'
-Dotenv.load
 require_relative 'lib/init'
-require 'resque'
-require 'sinatra/activerecord'
+Dotenv.load
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
 

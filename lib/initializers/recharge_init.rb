@@ -1,4 +1,3 @@
-require 'recharge'
 require_relative '../async'
 Recharge.api_key = ENV['RECHARGE_ACCESS_TOKEN']
 Recharge::Address.include Async

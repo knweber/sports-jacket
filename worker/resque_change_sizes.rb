@@ -1,4 +1,3 @@
-require 'resque'
 require_relative '../lib/recharge_active_record'
 
 class ChangeSizes

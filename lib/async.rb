@@ -1,5 +1,3 @@
-require 'resque'
-
 # This module is designed to be included in active record / recharge models. It
 # procides the #async_save method that creates a resque task to persist to
 # recharge and the caching database. Assumes the presence of an #as_recharge and

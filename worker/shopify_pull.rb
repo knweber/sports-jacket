@@ -1,7 +1,6 @@
 require_relative '../lib/init'
 require_relative '../models/all'
 require_relative '../lib/async'
-require 'resque'
 
 # used to fetch shopify api caching tables
 class ShopifyPull

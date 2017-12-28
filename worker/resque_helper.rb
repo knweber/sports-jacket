@@ -1,12 +1,6 @@
 #resque_helper
-require 'dotenv'
-require 'active_support/core_ext'
-require 'sinatra/activerecord'
-require 'httparty'
 require_relative '../lib/logging'
 require_relative '../models/all'
-
-Dotenv.load
 
 module ResqueHelper
     def provide_alt_products(myprod_id)

@@ -1,6 +1,4 @@
 require_relative 'init'
-require 'active_support'
-require 'active_support/core_ext'
 require_relative 'logging'
 
 module RechargeActiveRecordInclude

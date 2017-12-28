@@ -1,6 +1,5 @@
 require_relative 'pry_context'
 
-
 Config['monthly_product_id'] = 8204555081
 Config['ellie_3pack_product_id'] = 10016265938
 

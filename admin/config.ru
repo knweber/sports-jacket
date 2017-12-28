@@ -1,6 +1,3 @@
-#require 'rack'
-require 'rack/contrib'
-require 'rack/cors'
 require_relative '../lib/init'
 require_relative 'app.rb'
 
