@@ -956,3 +956,16 @@ end
 class UpdateProduct < ActiveRecord::Base
 
 end
+
+class SkippableProduct < ActiveRecord::Base
+
+end
+
+class MatchingProduct < ActiveRecord::Base
+  self.table_name = "matching_products"
+
+end
+
+class AlternateProduct < ActiveRecord::Base
+
+end

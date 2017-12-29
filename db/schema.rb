@@ -10,10 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171206193425) do
+ActiveRecord::Schema.define(version: 20171228234930) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "alternate_products", force: :cascade do |t|
+    t.string "product_title"
+    t.string "product_id"
+    t.string "variant_id"
+    t.string "sku"
+    t.index ["product_id"], name: "index_alternate_products_on_product_id"
+  end
 
   create_table "charge_billing_address", force: :cascade do |t|
     t.string "address1"
@@ -128,6 +136,7 @@ ActiveRecord::Schema.define(version: 20171206193425) do
   create_table "current_products", force: :cascade do |t|
     t.string "prod_id_key"
     t.string "prod_id_value"
+    t.string "next_month_prod_id"
     t.index ["prod_id_key"], name: "index_current_products_on_prod_id_key"
     t.index ["prod_id_value"], name: "index_current_products_on_prod_id_value"
   end
@@ -161,6 +170,14 @@ ActiveRecord::Schema.define(version: 20171206193425) do
     t.datetime "synced_at"
     t.index ["customer_id"], name: "index_customers_on_customer_id"
     t.index ["shopify_customer_id"], name: "index_customers_on_shopify_customer_id"
+  end
+
+  create_table "matching_products", force: :cascade do |t|
+    t.string "new_product_title"
+    t.string "incoming_product_id"
+    t.boolean "threepk", default: false
+    t.string "outgoing_product_id"
+    t.index ["incoming_product_id"], name: "index_matching_products_on_incoming_product_id"
   end
 
   create_table "order_billing_address", force: :cascade do |t|
@@ -269,6 +286,13 @@ ActiveRecord::Schema.define(version: 20171206193425) do
     t.index ["subscription_id"], name: "index_skip_reasons_on_subscription_id"
   end
 
+  create_table "skippable_products", force: :cascade do |t|
+    t.string "product_title"
+    t.string "product_id"
+    t.boolean "threepk", default: false
+    t.index ["product_id"], name: "index_skippable_products_on_product_id"
+  end
+
   create_table "sub_line_items", force: :cascade do |t|
     t.string "subscription_id"
     t.string "name"
@@ -332,6 +356,7 @@ ActiveRecord::Schema.define(version: 20171206193425) do
     t.string "shopify_variant_id"
     t.boolean "updated", default: false
     t.datetime "processed_at"
+    t.jsonb "raw_line_items"
     t.index ["customer_id"], name: "index_subscriptions_updated_on_customer_id"
     t.index ["subscription_id"], name: "index_subscriptions_updated_on_subscription_id"
   end

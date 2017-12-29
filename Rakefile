@@ -71,3 +71,21 @@ desc 'load update_products table with new data for updating the subscriptions ea
 task :load_update_products do |t|
   DetermineInfo::InfoGetter.new.load_update_products
 end
+
+#load_skippable_products
+desc 'load this months skippable products for customers valid skippable products'
+task :load_skippable_products do |t|
+  DetermineInfo::InfoGetter.new.load_skippable_products
+end
+
+#load_matching_products
+desc 'load matching products for this month to allow customers to switch to alternate products'
+task :load_matching_products do |t|
+  DetermineInfo::InfoGetter.new.load_matching_products
+end
+
+#load_alternate_products
+desc 'load alternate_products table for this month to allow customers to switch to alternate products'
+task :load_alternate_products do |t|
+  DetermineInfo::InfoGetter.new.load_alternate_products
+end

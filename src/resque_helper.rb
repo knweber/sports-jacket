@@ -9,41 +9,27 @@ require_relative 'models/model'
 Dotenv.load
 
 module ResqueHelper
-    def provide_alt_products(myprod_id)
-        #puts "Got to the helper"
-        
-        #set up product ids, variant ids, skus, etc. from env variable.
-        
-        monthly_product_id = ENV['MONTHLY_PRODUCT_ID']
-        ellie_3pack_product_id = ENV['ELLIE_3PACK_PRODUCT_ID']
-        
-        alt_monthly_title = ENV['ALT_MONTHLY_TITLE']
-        alt_monthly_sku = ENV['ALT_MONTHLY_SKU']
-        alt_monthly_product_id = ENV['ALT_MONTHLY_PRODUCT_ID']
-        alt_monthly_variant_id = ENV['ALT_MONTHLY_VARIANT_ID']
+    def provide_alt_products(myprod_id, incoming_product_id)
+        #Fix this by doing: check current product_id, determine if three-pack true/false
+        #use new_product_id and three-pack true/false to get outgoing product_id
+        #use outgoing product_id to create the product info: sku, variant_id, product_id, product title
+        #and return that hash value to the calling method.
 
-        alt_ellie3pack_title = ENV['ALT_ELLIE_3PACK_TITLE']
-        alt_ellie3pack_sku = ENV['ALT_ELLIE_3PACK_SKU']
-        alt_montly_product_id = ENV['ALT_MONTHLY_PRODUCT_ID']
-        alt_monthly_variant_id = ENV['ALT_MONTHLY_VARIANT_ID']
-        alt_ellie3pack_variant_id = ENV['ALT_ELLIE_3PACK_VARIANT_ID'] 
-        alt_ellie_3pack_product_id = ENV['ALT_ELLIE_3PACK_PRODUCT_ID']
+        my_three_pak = SkippableProduct.find_by_product_id(myprod_id)
+        puts "my_three_pak = #{my_three_pak.threepk}"
+        puts "my incoming_product_id = #{incoming_product_id}"
+        my_outgoing_product = MatchingProduct.where("incoming_product_id = ? and threepk = ?", incoming_product_id,  my_three_pak.threepk).first
 
+        puts "got here"
+        puts my_outgoing_product.inspect
+        my_outgoing_product_id = my_outgoing_product.outgoing_product_id
+        puts "my outgoing_product_id = #{my_outgoing_product_id}"
 
-        
-        stuff_to_return = {}
-        case myprod_id
-        when monthly_product_id 
-            #customer has monthly box, return Alternate Monthly Box  
-            stuff_to_return = {"sku" => alt_monthly_sku, "product_title" => alt_monthly_title, "shopify_product_id" => alt_monthly_product_id, "shopify_variant_id" => alt_monthly_variant_id}
-        when ellie_3pack_product_id
-            #Customer has Ellie 3- Pack, return Alternate Ellie 3- Pack
-            stuff_to_return = {"sku" => alt_ellie3pack_sku, "product_title" => alt_ellie3pack_title, "shopify_product_id" => alt_ellie_3pack_product_id, "shopify_variant_id" => alt_ellie3pack_variant_id}
-        else
-            #Give them the Alt 3-Pack
-            stuff_to_return = {"sku" => alt_ellie3pack_sku, "product_title" => alt_ellie3pack_title, "shopify_product_id" => alt_ellie_3pack_product_id, "shopify_variant_id" => alt_ellie3pack_variant_id}
+        my_new_product = AlternateProduct.find_by_product_id(my_outgoing_product_id)
+        puts "new product info is #{my_new_product.inspect}"
 
-        end
+        stuff_to_return = { "sku" => my_new_product.sku, "product_title" => my_new_product.product_title, "shopify_product_id" => my_new_product.product_id, "shopify_variant_id" => my_new_product.variant_id }
+
         return stuff_to_return
 
     end
