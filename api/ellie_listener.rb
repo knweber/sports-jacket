@@ -8,7 +8,6 @@ require_relative '../lib/logging'
 class EllieListener < Sinatra::Base
   register Sinatra::ActiveRecordExtension
   include Logging
-  #config.time_zone = 'Pacific Time (US & Canada)'
 
   PAGE_LIMIT = 250
 
