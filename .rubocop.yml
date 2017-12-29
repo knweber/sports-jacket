@@ -24,3 +24,6 @@ Layout/SpaceBeforeBlockBraces:
 
 Style/TrailingCommaInArguments:
   Enabled: False
+
+Style/NumericLiterals:
+  Enabled: False
