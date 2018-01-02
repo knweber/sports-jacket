@@ -1,16 +1,13 @@
-require 'dotenv'
+require_relative 'lib/init'
 Dotenv.load
-require 'redis'
-require 'resque'
-Resque.redis = Redis.new(url: ENV['REDIS_URL'])
-require 'sinatra/activerecord'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
 
-require_relative 'src/get_ellie_info'
-require_relative 'src/models/model'
-require_relative 'src/ellie_listener'
-require_relative 'src/resque_helper'
+require_relative 'models/all'
+
+Dir['worker/**/*.rb'].each do |file|
+  require_relative file
+end
 
 Resque.logger =
   if ENV['production']
@@ -70,4 +67,27 @@ end
 desc 'load update_products table with new data for updating the subscriptions each month'
 task :load_update_products do |t|
   DetermineInfo::InfoGetter.new.load_update_products
+end
+
+desc 'sync products table'
+task :sync_products do |t|
+  ShopifyPull.async :all_products
+end
+#
+#load_skippable_products
+desc 'load this months skippable products for customers valid skippable products'
+task :load_skippable_products do |t|
+  DetermineInfo::InfoGetter.new.load_skippable_products
+end
+
+#load_matching_products
+desc 'load matching products for this month to allow customers to switch to alternate products'
+task :load_matching_products do |t|
+  DetermineInfo::InfoGetter.new.load_matching_products
+end
+
+#load_alternate_products
+desc 'load alternate_products table for this month to allow customers to switch to alternate products'
+task :load_alternate_products do |t|
+  DetermineInfo::InfoGetter.new.load_alternate_products
 end

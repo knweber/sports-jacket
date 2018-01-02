@@ -6,3 +6,4 @@
 *.pid
 /logs
 puma.state
+elm-stuff

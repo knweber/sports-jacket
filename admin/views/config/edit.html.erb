@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Edit Config: <%= key || "NEW" %></title>
+  </head>
+  <body>
+    <h1>Edit Config</h1>
+    <form action="/config" method="post" accept-charset="utf-8">
+      <div>
+        <label for="key">Key:</label>
+        <input type="text" name="key" id="key" value="<%= key %>" />
+      </div>
+      <div>
+        <label>Value:</label>
+        <textarea name="val" rows="24" cols="80"><%= value %></textarea>
+      </div>
+    </form>
+    <p><a href="/config">Back</a></p>
+  </body>
+</html>

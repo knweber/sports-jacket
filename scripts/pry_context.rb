@@ -1,2 +1,4 @@
-require_relative '../src/ellie_listener.rb'
-require_relative '../test/helpers.rb'
+# this file loads all library files and initializes external connections with
+# their default values
+require_relative '../lib/init'
+require_relative '../models/all'

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Edit Product Tag: <%= product_tag.id %></title>
+  </head>
+  <body>
+    <form action="/product_tags/<%= product_tag.id %>" method="post" accept-charset="utf-8">
+      <input type="hidden" name="_method" id="_method" value="put" />
+      <div>
+        <label for="product_id">Product ID:</label>
+        <select name="product_id" id="product_id">
+          <% products.each do |id, title| %>
+            <option value="<%= id %>"<%= id == product_tag.product_id ? ' selected ' : '' %>><%= title %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label for="tag">Tag:</label>
+        <input type="text" name="tag" id="tag" value="<%= product_tag.tag %>" placeholder="current" />
+      </div>
+
+      <div>
+        <label for="theme_id">Theme:</label>
+        <select name="theme_id" id="theme_id">
+          <% themes.each do |theme| %>
+            <option value="<%= theme.id %>"<%= theme.id == product_tag.theme_id ? ' selected ' : '' %>><%= theme.name %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label for="active_start">Active Start:</label>
+        <input type="datetime-local" name="active_start" id="active_start" value="<%= product_tag.active_start %>" />
+      </div>
+
+      <div>
+        <label for="active_end">Active End:</label>
+        <input type="datetime-local" name="active_end" id="active_end" value="<%= product_tag.active_end %>" />
+      </div>
+
+      <input type="submit" name="_submit" id="_submit" value="Update" />
+    </form>
+    <p><a href="/product_tags">Back</a></p>
+  </body>
+</html>
