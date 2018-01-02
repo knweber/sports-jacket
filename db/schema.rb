@@ -142,15 +142,9 @@ ActiveRecord::Schema.define(version: 20171228234930) do
   create_table "current_products", force: :cascade do |t|
     t.string "prod_id_key"
     t.string "prod_id_value"
+    t.string "next_month_prod_id"
     t.index ["prod_id_key"], name: "index_current_products_on_prod_id_key"
     t.index ["prod_id_value"], name: "index_current_products_on_prod_id_value"
-  end
-
-  create_table "customer_info", force: :cascade do |t|
-    t.string "shopify_id"
-    t.string "subscription_id"
-    t.index ["shopify_id"], name: "index_customer_info_on_shopify_id"
-    t.index ["subscription_id"], name: "index_customer_info_on_subscription_id"
   end
 
   create_table "customers", force: :cascade do |t|
