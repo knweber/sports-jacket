@@ -5,7 +5,6 @@ require_relative 'application'
 
 class Subscription < ActiveRecord::Base
   include ApplicationRecord
-  include RechargeActiveRecordInclude
   include Async
 
   self.primary_key = :subscription_id
