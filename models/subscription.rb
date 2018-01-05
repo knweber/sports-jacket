@@ -194,7 +194,7 @@ class Subscription < ActiveRecord::Base
 
   def active?(time = nil)
     time ||= Time.current
-    charges.where('scheduled_at > ?', time).count.positive? &&
+    next_charge_scheduled_at.try('>', time) &&
       status == 'ACTIVE'
   end
 
