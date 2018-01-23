@@ -14,7 +14,7 @@ class SubscriptionSwitch
     puts "We are working on subscription #{subscription_id}"
     Resque.logger.info("We are working on subscription #{subscription_id}")
 
-    temp_hash = provide_alt_products(product_id, incoming_product_id)
+    temp_hash = provide_alt_products(product_id, incoming_product_id, subscription_id)
     puts temp_hash
     Resque.logger.info("new product info for subscription #{subscription_id} is #{temp_hash}")
 
@@ -34,6 +34,7 @@ class SubscriptionSwitch
 
     update_success = false
     if my_update_sub.code == 200
+
       #if 200 == 200
       update_success = true
       puts "****** Hooray We have no errors **********"

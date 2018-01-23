@@ -3,7 +3,7 @@ require_relative '../lib/logging'
 require_relative '../models/all'
 
 module ResqueHelper
-    def provide_alt_products(myprod_id, incoming_product_id)
+    def provide_alt_products(myprod_id, incoming_product_id, subscription_id)
         #Fix this by doing: check current product_id, determine if three-pack true/false
         #use new_product_id and three-pack true/false to get outgoing product_id
         #use outgoing product_id to create the product info: sku, variant_id, product_id, product title
@@ -22,7 +22,37 @@ module ResqueHelper
         my_new_product = AlternateProduct.find_by_product_id(my_outgoing_product_id)
         puts "new product info is #{my_new_product.inspect}"
 
-        stuff_to_return = { "sku" => my_new_product.sku, "product_title" => my_new_product.product_title, "shopify_product_id" => my_new_product.product_id, "shopify_variant_id" => my_new_product.variant_id }
+        #Here I need to check current subscription line item properties. If need be add or modify
+        #the product_collection to the chosen product_collection customers switch to.
+        my_sub = Subscription.find_by_subscription_id(subscription_id)
+        puts my_sub.inspect
+        my_line_items = my_sub.raw_line_item_properties
+        puts my_line_items.inspect
+        found_collection = false
+        
+        my_line_items.map do |mystuff|
+            #puts "#{key}, #{value}"
+            if mystuff['name'] == 'product_collection'
+                mystuff['value'] = my_new_product.product_collection
+                found_collection = true
+            end
+        end
+        puts "my_line_items = #{my_line_items.inspect}"
+
+        if found_collection == false
+             #only if I did not find the product_collection property in the line items do I need to add it
+            puts "We are adding the product collection to the line item properties"
+            my_line_items << {"name" => "product_collection", "value" => my_new_product.product_collection}
+
+        else
+            puts "We have already updated the product_collection value!"
+        end
+
+        
+        
+
+
+        stuff_to_return = { "sku" => my_new_product.sku, "product_title" => my_new_product.product_title, "shopify_product_id" => my_new_product.product_id, "shopify_variant_id" => my_new_product.variant_id, "properties" => my_line_items }
 
         return stuff_to_return
 
