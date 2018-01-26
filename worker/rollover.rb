@@ -1,6 +1,5 @@
+require_relative '../config/environment'
 require_relative '../lib/async'
-require_relative '../lib/init'
-require_relative '../models/config'
 
 
 class Rollover

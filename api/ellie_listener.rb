@@ -1,7 +1,4 @@
-Dotenv.load
-
-require_relative '../lib/init'
-require_relative '../models/all'
+require_relative 'config/environment'
 require_relative '../lib/recharge_active_record'
 require_relative '../lib/logging'
 

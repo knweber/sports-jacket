@@ -1,4 +1,4 @@
-require_relative '../lib/init'
+require_relative '../config/environment'
 require_relative '../lib/async'
 
 # WIP

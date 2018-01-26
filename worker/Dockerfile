@@ -12,11 +12,10 @@ ENV QUEUE="*"
 
 VOLUME /app/logs
 WORKDIR /app
+CMD ["rake", "resque:work"]
 
 # update bundler to prevent errors concerning the lockfile
 RUN gem install --no-document bundler
 ADD Gemfile Gemfile.lock /app/
 RUN bundle install --deployment
 COPY ./ /app/
-
-CMD ["rake", "resque:work"]

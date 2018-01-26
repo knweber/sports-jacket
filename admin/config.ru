@@ -1,4 +1,4 @@
-require_relative '../lib/init'
+require_relative '../config/environment.rb'
 require_relative 'app.rb'
 
 app = Rack::Builder.app do

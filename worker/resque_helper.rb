@@ -1,6 +1,5 @@
 #resque_helper
 require_relative '../lib/logging'
-require_relative '../models/all'
 
 module ResqueHelper
     def provide_alt_products(myprod_id, incoming_product_id, subscription_id)

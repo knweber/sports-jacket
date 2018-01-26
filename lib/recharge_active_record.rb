@@ -1,4 +1,3 @@
-require_relative 'init'
 require_relative 'logging'
 
 module RechargeActiveRecordInclude
