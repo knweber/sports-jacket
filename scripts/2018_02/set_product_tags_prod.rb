@@ -14,6 +14,10 @@ main_3 = 138427301906
 main_5 = 138427203602
 ProductTag.find_or_create_by(base_tag.merge(product_id: alt1_3, tag: 'current'))
 ProductTag.find_or_create_by(base_tag.merge(product_id: alt1_5, tag: 'current'))
+ProductTag.find_or_create_by(base_tag.merge(product_id: alt1_3, tag: 'skippable'))
+ProductTag.find_or_create_by(base_tag.merge(product_id: alt1_5, tag: 'skippable'))
+ProductTag.find_or_create_by(base_tag.merge(product_id: alt1_3, tag: 'switchable'))
+ProductTag.find_or_create_by(base_tag.merge(product_id: alt1_5, tag: 'switchable'))
 
 # alt 1
 alt1_3 = 138427596818
