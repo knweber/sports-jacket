@@ -40,7 +40,7 @@ module DetermineInfo
       response = HTTParty.get("https://api.rechargeapps.com/subscriptions/count", :headers => @my_header)
       my_response = JSON.parse(response)
       my_count = my_response['count'].to_i
-      logger.info "We have #{my_count} subscriptions" 
+      logger.info "We have #{my_count} subscriptions"
       my_temp_array = Array.new
 
       page_size = 250
@@ -91,11 +91,11 @@ module DetermineInfo
               conn.exec_prepared('statement2', [id, temp_name, temp_value])
             end
           end
-        end 
+        end
         logger.info "Done with page #{page}"
         logger.info "Sleeping #{@sleep_recharge}"
         sleep @sleep_recharge.to_i
-      end        
+      end
       conn.close
 
 
@@ -137,7 +137,7 @@ module DetermineInfo
 
         end
         logger.info "sportsjacket = #{sports_jacket_present}, size = #{temp_jacket_size}"
-        if !sports_jacket_present && temp_jacket_size != "" 
+        if !sports_jacket_present && temp_jacket_size != ""
           temp_jacket_properties = {"name" => "sports-jacket", "value" => temp_jacket_size}
           temp_property_array << temp_jacket_properties
           json_data = {"properties" => temp_property_array}.to_json
@@ -205,16 +205,16 @@ module DetermineInfo
         properties = row['properties']
         logger.debug "#{subscription_id}, #{properties}"
         begin
-          property_change_recharge = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{subscription_id}", :headers => @my_change_charge_header, :body => properties)  
+          property_change_recharge = HTTParty.put("https://api.rechargeapps.com/subscriptions/#{subscription_id}", :headers => @my_change_charge_header, :body => properties)
 
         rescue StandardError => exception
           logger.error "We can't process id #{subscription_id}"
         else
           #mark processed to true
           my_update = "update update_line_items set updated = \'t\'  where subscription_id = \'#{subscription_id}\'"
-          conn.exec(my_update)    
+          conn.exec(my_update)
         ensure
-          logger.info "Done with this record" 
+          logger.info "Done with this record"
         end
         end_time = Time.now
         duration = (end_time - start_time).ceil
@@ -348,7 +348,7 @@ module DetermineInfo
             logger.debug "InfoGetter#insert_orders_into_db line item: #{myitem}"
             myname = myitem['name']
             myvalue = myitem['value']
-            if myvalue == "" 
+            if myvalue == ""
               myvalue = nil
             end
             logger.info "Inserting charge #{charge_id}: #{myname} -> #{myvalue}"
@@ -549,19 +549,19 @@ module DetermineInfo
       conn = PG.connect(uri.hostname, uri.port, nil, nil, uri.path[1..-1], uri.user, uri.password)
 
       my_insert = "insert into orders (order_id, transaction_id, charge_status, payment_processor, address_is_active, status, order_type, charge_id, address_id, shopify_id, shopify_order_id, shopify_order_number, shopify_cart_token, shipping_date, scheduled_at, shipped_date, processed_at, customer_id, first_name, last_name, is_prepaid, created_at, updated_at, email, line_items, total_price, shipping_address, billing_address) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)"
-      conn.prepare('statement1', "#{my_insert}")  
+      conn.prepare('statement1', "#{my_insert}")
 
       my_order_line_fixed_insert = "insert into order_line_items_fixed (order_id, shopify_variant_id, title, variant_title, subscription_id, quantity, shopify_product_id, product_title) values ($1, $2, $3, $4, $5, $6, $7, $8)"
-      conn.prepare('statement2', "#{my_order_line_fixed_insert}") 
+      conn.prepare('statement2', "#{my_order_line_fixed_insert}")
 
       my_order_line_variable_insert = "insert into order_line_items_variable (order_id, name, value) values ($1, $2, $3)"
-      conn.prepare('statement3', "#{my_order_line_variable_insert}") 
+      conn.prepare('statement3', "#{my_order_line_variable_insert}")
 
       my_order_shipping_insert = "insert into order_shipping_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-      conn.prepare('statement4', "#{my_order_shipping_insert}") 
+      conn.prepare('statement4', "#{my_order_shipping_insert}")
 
       my_order_billing_insert = "insert into order_billing_address (order_id, province, city, first_name, last_name, zip, country, address1, address2, company, phone) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-      conn.prepare('statement5', "#{my_order_billing_insert}") 
+      conn.prepare('statement5', "#{my_order_billing_insert}")
 
 
       number_orders = count_orders
@@ -578,7 +578,7 @@ module DetermineInfo
           order.each do |myord|
             logger.debug "InfoGetter#insert_orders_into_db myord: #{myord.inspect}"
           end
-          order_id = order['id'] 
+          order_id = order['id']
           transaction_id = order['id']
           charge_status = order['charge_status']
           payment_processor = order['payment_processor']
@@ -661,12 +661,12 @@ module DetermineInfo
 
 
         end
-        logger.info "Done with page #{page}"  
+        logger.info "Done with page #{page}"
         current = Time.now
         duration = (current - start).ceil
-        logger.info "Been running #{duration} seconds" 
+        logger.info "Been running #{duration} seconds"
         logger.info "Sleeping #{@sleep_recharge}"
-        sleep @sleep_recharge.to_i             
+        sleep @sleep_recharge.to_i
 
       end
       conn.close
@@ -691,15 +691,19 @@ module DetermineInfo
       uri = URI.parse(ENV['DATABASE_URL'])
       conn = PG.connect(uri.hostname, uri.port, nil, nil, uri.path[1..-1], uri.user, uri.password)
 
-      my_insert = "insert into customers (customer_id, customer_hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
-      conn.prepare('statement1', "#{my_insert}") 
+      bulk_customer_insert = "insert into customers (customer_id, customer_hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) VALUES "
 
+
+      # my_insert = "insert into customers (customer_id, customer_hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
+      # conn.prepare('statement1', "#{my_insert}")
+      bulk_rows = ""
       start = Time.now
       page_size = 250
       num_pages = (num_customers/page_size.to_f).ceil
       1.upto(num_pages) do |page|
         customers = HTTParty.get("https://api.rechargeapps.com/customers?limit=250&page=#{page}", :headers => @my_header)
         my_customers = customers.parsed_response['customers']
+
         my_customers.each do |mycust|
           logger.debug "#{'#' * 5} CUSTOMER #{'#' * 35}\n#{mycust.inspect}"
           customer_id = mycust['id']
@@ -720,24 +724,27 @@ module DetermineInfo
           billing_phone = mycust['billing_phone']
           processor_type = mycust['processor_type']
           status = mycust['status']
-          conn.exec_prepared('statement1', [customer_id, hash, shopify_customer_id, email, created_at, updated_at, first_name, last_name, billing_address1, billing_address2, billing_zip, billing_city, billing_company, billing_province, billing_country, billing_phone, processor_type, status])
 
+          single_row = "(#{customer_id}, #{hash}, #{shopify_customer_id}, #{email}, #{created_at}, #{updated_at}, #{first_name}, #{last_name}, #{billing_address1}, #{billing_address2}, #{billing_zip}, #{billing_city}, #{billing_company}, #{billing_province}, #{billing_country}, #{billing_phone}, #{processor_type}, #{status}),"
 
-
+          bulk_rows += single_row
         end
+
+        # remove last comma from bulk_rows values and replace with semicolon
+        bulk_rows.gsub!(/\,$/,';')
+
+        # bulk insert customers into DB by page
+        conn.exec("#{bulk_customer_insert} #{bulk_rows}")
+
         logger.info "Done with page #{page}"
         current = Time.now
         duration = (current - start).ceil
         logger.info "Running #{duration} seconds"
         logger.info "Sleeping #{@sleep_recharge}"
-        sleep @sleep_recharge.to_i 
-
-
+        sleep @sleep_recharge.to_i
 
       end
       logger.info "All done inserting orders"
-
-
 
     end
 
@@ -862,7 +869,7 @@ module DetermineInfo
     def setup_subscription_update_table
       params = {"action" => "setting up subscription_updated table"}
       Resque.enqueue(SetupSubscriptionUpdated, params)
-      
+
     end
 
     class SetupSubscriptionUpdated
@@ -876,7 +883,7 @@ module DetermineInfo
     end
 
     def update_subscription_product
-     params = {"action" => "updating subscription product info", "recharge_change_header" => @my_change_charge_header} 
+     params = {"action" => "updating subscription product info", "recharge_change_header" => @my_change_charge_header}
      Resque.enqueue(UpdateSubscriptionProduct, params)
 
     end
@@ -903,7 +910,7 @@ module DetermineInfo
         #puts row.inspect
         prod_id_key = row['prod_id_key']
         prod_id_value = row['prod_id_value']
-        
+
         @conn.exec_prepared('statement1', [prod_id_key, prod_id_value])
       end
         @conn.close
@@ -923,7 +930,7 @@ module DetermineInfo
         sku = row['sku']
         shopify_product_id = row['shopify_product_id']
         shopify_variant_id = row['shopify_variant_id']
-        
+
         @conn.exec_prepared('statement1', [product_title, sku, shopify_product_id, shopify_variant_id])
       end
         @conn.close
@@ -942,7 +949,7 @@ module DetermineInfo
           prod_title = row['product_title']
           prod_id = row['product_id']
           mythreepk = row['3pk']
-          
+
           @conn.exec_prepared('statement1', [prod_title, prod_id, mythreepk])
         end
           @conn.close
@@ -961,7 +968,7 @@ module DetermineInfo
         incoming_prod_id = row['incoming_product_id']
         mythreepk = row['threepk']
         outgoing_prod_id = row['outgoing_product_id']
-        
+
         @conn.exec_prepared('statement1', [title, incoming_prod_id, mythreepk, outgoing_prod_id])
       end
         @conn.close
@@ -982,7 +989,7 @@ module DetermineInfo
         var_id = row['variant_id']
         sku = row['sku']
         product_collection = row['product_collection']
-        
+
         @conn.exec_prepared('statement1', [title, prod_id, var_id, sku, product_collection])
       end
         @conn.close

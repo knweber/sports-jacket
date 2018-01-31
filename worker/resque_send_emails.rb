@@ -1,5 +1,5 @@
 require_relative 'resque_helper'
-require 'sendgrid'
+require 'sendgrid-ruby'
 
 class SendEmailToCustomer
   extend ResqueHelper
@@ -30,6 +30,7 @@ class SendEmailToCustomer
 end
 
 class SendEmailToCS
+  # Need to get Recharge stuff
   extend ResqueHelper
   include Logging
   include SendGrid
