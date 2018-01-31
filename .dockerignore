@@ -1,0 +1,9 @@
+/docker-compose.yml
+/docs
+.env*
+.git
+.gitignore
+/.rake_tasks~
+/.rubocop.yml
+/.ruby-version
+/tags

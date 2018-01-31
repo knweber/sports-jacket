@@ -1,9 +1,6 @@
-require_relative 'lib/init'
-Dotenv.load
+require_relative 'config/environment'
 require 'sinatra/activerecord/rake'
 require 'resque/tasks'
-
-require_relative 'models/all'
 
 Dir['worker/**/*.rb'].each do |file|
   require_relative file

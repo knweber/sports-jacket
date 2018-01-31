@@ -13,14 +13,12 @@ ENV REDIS_URL=""
 
 VOLUME /app/logs
 WORKDIR /app
+CMD ["puma"]
 
 # update bundler to prevent errors concerning the lockfile
 RUN gem install --no-document bundler
 COPY Gemfile Gemfile.lock /app/
 RUN bundle install --deployment
-COPY lib/ /app/lib/
-COPY models/ /app/models/
-COPY api/ /app/api/
+COPY ./ /app/
 
 WORKDIR /app/api
-CMD ["puma"]

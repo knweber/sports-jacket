@@ -1427,7 +1427,7 @@ module EllieHelper
     
         order_count = HTTParty.get("https://api.rechargeapps.com/orders/count?created_at_min=\'#{created_at_min}\'", :headers => my_header)
         my_count = order_count.parsed_response
-        my_count = JSON.parse(my_count)
+        #my_count = JSON.parse(my_count)
         num_orders = my_count['count'].to_i
         return num_orders
     

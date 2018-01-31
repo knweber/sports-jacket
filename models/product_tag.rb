@@ -1,6 +1,3 @@
-require_relative '../lib/init'
-require_relative 'config'
-
 class ProductTag < ActiveRecord::Base
 
   # the options this method takes are:

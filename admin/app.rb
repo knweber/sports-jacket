@@ -1,6 +1,4 @@
-require_relative '../lib/init'
-Dotenv.load
-require_relative '../models/all'
+require_relative '../config/environment'
 require_relative '../lib/logging'
 
 class EllieAdmin < Sinatra::Base

@@ -1,7 +1,5 @@
-require_relative '../lib/init'
 require_relative '../lib/recharge_active_record'
 require_relative '../lib/async'
-require_relative 'application'
 
 class Subscription < ActiveRecord::Base
   include ApplicationRecord
