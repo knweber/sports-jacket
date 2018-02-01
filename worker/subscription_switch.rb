@@ -39,9 +39,11 @@ class SubscriptionSwitch
       update_success = true
       puts "****** Hooray We have no errors **********"
       Resque.logger.info("****** Hooray We have no errors **********")
+      Resque.enqueue(SendEmailToCustomer, subscription_id)
     else
       puts "We were not able to update the subscription"
       Resque.logger.info("We were not able to update the subscription")
+      Resque.enqueue(SendEmailToCS, subscription_id)
     end
 
 

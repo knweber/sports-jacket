@@ -7,19 +7,17 @@ class SendEmailToCustomer
   include SendGrid
 
   @queue = 'send_customer_confirmation'
-  def self.perform(subscription_updated_id)
+  def self.perform(subscription_id)
     Resque.logger = Logger.new("#{Dir.getwd}/logs/send_emails_resque.log")
 
-    updated_subscription = SubscriptionsUpdated.find(subscription_updated_id)
-    subscription = Subscription.find(updated_subscription.subscription_id)
+    subscription = Subscription.find(subscription_id)
     customer = Customer.find(subscription.customer_id)
-    # address_id = subscription.address_id
 
     begin
       from = Email.new(email: ENV['no-reply@ellie.com'], name: 'Ellie')
       subject = "Confirmation of subscription change"
       to = Email.new(email: customer.email)
-      
+
       content = Content.new(type: 'text/plain', value: 'Your information has been updated. Thanks for shopping at ellie.com!')
       mail = Mail.new(from, subject, to, content)
       sg = SendGrid::API.new(api_key: ENV['SENDGRID_API_KEY'], host: 'https://api.sendgrid.com')
@@ -40,9 +38,8 @@ class SendEmailToCS
   include SendGrid
 
   @queue = 'send_cs_error_email'
-  def self.perform(subscription_updated_id)
-    updated_subscription = SubscriptionsUpdated.find(subscription_updated_id)
-    subscription = Subscription.find(updated_subscription.subscription_id)
+  def self.perform(subscription_id)
+    subscription = Subscription.find(subscription_id)
     customer = Customer.find(subscription.customer_id)
     address_id = subscription.address_id
     prod_title = subscription.product_title

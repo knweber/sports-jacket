@@ -93,18 +93,18 @@ task :load_alternate_products do |t|
   DetermineInfo::InfoGetter.new.load_alternate_products
 end
 
-desc 'send confirmation email to customer after a change. Usage: `rake send_customer_confirmation SUBSCRIPTION_UPDATED_ID=<ID>`'
-task :send_customer_confirmation do |t|
-  unless ENV['SUBSCRIPTION_UPDATED_ID']
-    raise ArgumentError.new 'Requires SUBSCRIPTION_UPDATED_ID'
-  end
-  Resque.enqueue(SendEmailToCustomer, ENV['SUBSCRIPTION_UPDATED_ID'])
-end
-
-desc 'send email to customer service if order/sub update fails. Usage: `rake send_cs_error_email SUBSCRIPTION_UPDATED_ID=<ID>`'
-task :send_cs_error_email do |t|
-  unless ENV['SUBSCRIPTION_UPDATED_ID']
-    raise ArgumentError.new 'Requires SUBSCRIPTION_UPDATED_ID'
-  end
-  Resque.enqueue(SendEmailToCS, ENV['SUBSCRIPTION_UPDATED_ID'])
-end
+# desc 'send confirmation email to customer after a change. Usage: `rake send_customer_confirmation SUBSCRIPTION_UPDATED_ID=<ID>`'
+# task :send_customer_confirmation do |t|
+#   unless ENV['SUBSCRIPTION_UPDATED_ID']
+#     raise ArgumentError.new 'Requires SUBSCRIPTION_UPDATED_ID'
+#   end
+#   Resque.enqueue(SendEmailToCustomer, ENV['SUBSCRIPTION_UPDATED_ID'])
+# end
+#
+# desc 'send email to customer service if order/sub update fails. Usage: `rake send_cs_error_email SUBSCRIPTION_UPDATED_ID=<ID>`'
+# task :send_cs_error_email do |t|
+#   unless ENV['SUBSCRIPTION_UPDATED_ID']
+#     raise ArgumentError.new 'Requires SUBSCRIPTION_UPDATED_ID'
+#   end
+#   Resque.enqueue(SendEmailToCS, ENV['SUBSCRIPTION_UPDATED_ID'])
+# end
