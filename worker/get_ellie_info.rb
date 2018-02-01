@@ -959,21 +959,9 @@ module DetermineInfo
     def load_matching_products
       MatchingProduct.delete_all
       ActiveRecord::Base.connection.reset_pk_sequence!('matching_products')
-
-      my_insert = "insert into matching_products (new_product_title, incoming_product_id, threepk, outgoing_product_id) values ($1, $2, $3, $4)"
-      @conn.prepare('statement1', "#{my_insert}")
-      CSV.foreach('matching_products.csv', :encoding => 'ISO-8859-1', :headers => true) do |row|
-        #puts row.inspect
-        title = row['new_product_title']
-        incoming_prod_id = row['incoming_product_id']
-        mythreepk = row['threepk']
-        outgoing_prod_id = row['outgoing_product_id']
-
-        @conn.exec_prepared('statement1', [title, incoming_prod_id, mythreepk, outgoing_prod_id])
-      end
-        @conn.close
-
-
+      my_copy_insert = "COPY matching_products FROM 'matching_products.csv' DELIMITER ',' CSV HEADER;"
+      @conn.exec(my_copy_insert)
+      @conn.close
     end
 
     def load_alternate_products
