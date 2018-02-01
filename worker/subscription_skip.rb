@@ -38,10 +38,13 @@ class SubscriptionSkip
     update_success = true
     puts "****** Hooray We have no errors **********"
     Resque.logger.info("****** Hooray We have no errors **********")
+    Resque.enqueue(SendEmailToCustomer, subscription_id)
     puts "We are adding to skip_reasons table"
     skip_reason = SkipReason.create(customer_id:  my_customer_id, shopify_customer_id:  shopify_customer_id, subscription_id:  subscription_id, reason:  my_reason, skipped_to:  next_charge_str, skip_status:  update_success, created_at:  my_now )
     puts skip_reason.inspect
+
     puts "We were not able to update the subscription" unless update_success
+    Resque.enqueue(SendEmailToCS, subscription_id) unless update_success
     Resque.logger.info("We were not able to update the subscription") unless update_success
 
   end

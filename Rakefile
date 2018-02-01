@@ -13,6 +13,10 @@ Resque.logger =
     Logger.new STDOUT, level: Logger::INFO
   end
 
+task 'resque:setup' do
+  ENV['QUEUE'] = '*'
+end
+
 desc 'do full or partial pull of customers and add to DB'
 task :customer_pull, [:args] do |t, args|
   DetermineInfo::InfoGetter.new.handle_customers(*args)
@@ -88,3 +92,19 @@ desc 'load alternate_products table for this month to allow customers to switch 
 task :load_alternate_products do |t|
   DetermineInfo::InfoGetter.new.load_alternate_products
 end
+
+# desc 'send confirmation email to customer after a change. Usage: `rake send_customer_confirmation SUBSCRIPTION_UPDATED_ID=<ID>`'
+# task :send_customer_confirmation do |t|
+#   unless ENV['SUBSCRIPTION_UPDATED_ID']
+#     raise ArgumentError.new 'Requires SUBSCRIPTION_UPDATED_ID'
+#   end
+#   Resque.enqueue(SendEmailToCustomer, ENV['SUBSCRIPTION_UPDATED_ID'])
+# end
+#
+# desc 'send email to customer service if order/sub update fails. Usage: `rake send_cs_error_email SUBSCRIPTION_UPDATED_ID=<ID>`'
+# task :send_cs_error_email do |t|
+#   unless ENV['SUBSCRIPTION_UPDATED_ID']
+#     raise ArgumentError.new 'Requires SUBSCRIPTION_UPDATED_ID'
+#   end
+#   Resque.enqueue(SendEmailToCS, ENV['SUBSCRIPTION_UPDATED_ID'])
+# end
