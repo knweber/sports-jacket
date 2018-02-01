@@ -20,5 +20,7 @@ class ChangeSizes
     #puts "new sub props: #{new_props}"
     #Subscription.find(subscription_id).update(raw_line_item_properties: new_props)
     puts 'Sizes updated!'
+    Resque.enqueue(SendEmailToCustomer, subscription_id)
+    Resque.enqueue(SendEmailToCS, subscription_id) if !res
   end
 end
